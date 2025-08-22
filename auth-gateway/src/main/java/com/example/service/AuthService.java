@@ -66,4 +66,21 @@ public class AuthService {
         return token;
     }
 
+    public String refresh(String refreshToken) {
+        RefreshToken rt = refreshTokenRepository.findByToken(refreshToken);
+        if (rt == null || rt.isRevoked() || rt.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Invalid refresh token");
+        }
+        User user = userRepository.findById(rt.getId()).orElseThrow();
+        String newAccessToken = jwtUtil.generateAccessToken(
+                user.getUsername(),
+                user.getId(),
+                user.getFirstName() + " " + user.getLastName(),
+                user.getRole().name());
+        // Optionally: Отзови старый refresh и создай новый
+        rt.setRevoked(true);
+        refreshTokenRepository.save(rt);
+        generateRefreshToken(user.getId());  // новый refresh
+        return newAccessToken;
+    }
 }

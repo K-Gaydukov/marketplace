@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 public class AuthController {
 
@@ -20,5 +22,10 @@ public class AuthController {
     public ResponseEntity<String> register(@RequestBody User user) {
         authService.register(user);
         return ResponseEntity.ok("Registered successfully");
+    }
+
+    @PostMapping("/auth/login")
+    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> credentials) {
+        return ResponseEntity.ok(authService.login(credentials.get("username"), credentials.get("password")));
     }
 }

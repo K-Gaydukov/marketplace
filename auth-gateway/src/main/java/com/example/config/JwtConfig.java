@@ -17,24 +17,5 @@ import java.util.Base64;
 @Configuration
 public class JwtConfig {
 
-    @Bean
-    public JwtUtil jwtUtil() throws Exception {
-        String privateKeyPem = new String(Files.readAllBytes(Paths.get("src/main/resources/private.pem")), StandardCharsets.UTF_8)
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replaceAll(System.lineSeparator(), "")
-                .replace("-----END PRIVATE KEY-----", "");
-        byte[] encodedPrivate = Base64.getDecoder().decode(privateKeyPem);
-        PKCS8EncodedKeySpec keySpecPrivate = new PKCS8EncodedKeySpec(encodedPrivate);
-        PrivateKey privateKey = KeyFactory.getInstance("RSA").generatePrivate(keySpecPrivate);
 
-        String publicKeyPem = new String(Files.readAllBytes(Paths.get("src/main/resources/public.pem")), StandardCharsets.UTF_8)
-                .replace("-----BEGIN PUBLIC KEY-----", "")
-                .replaceAll(System.lineSeparator(), "")
-                .replace("-----END PUBLIC KEY-----", "");
-        byte[] encodedPublic = Base64.getDecoder().decode(publicKeyPem);
-        X509EncodedKeySpec keySpecPublic = new X509EncodedKeySpec(encodedPublic);
-        PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpecPublic);
-
-        return new JwtUtil(privateKey, publicKey);
-    }
 }

@@ -2,6 +2,7 @@ package com.example.controller;
 
 import com.example.entity.User;
 import com.example.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,11 +13,8 @@ import java.util.Map;
 @RestController
 public class AuthController {
 
-    private final AuthService authService;
-
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
+    @Autowired
+    private AuthService authService;
 
     @PostMapping("/auth/register")
     public ResponseEntity<String> register(@RequestBody User user) {

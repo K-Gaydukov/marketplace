@@ -52,6 +52,7 @@ public class AuthService {
                 user.getRole().name());
 
         String refreshToken = generateRefreshToken(user); // Метод ниже
+
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
     }
 
@@ -68,20 +69,24 @@ public class AuthService {
     }
 
     public String refresh(String refreshToken) {
+        // Шаг 1: Проверяем refresh-токен
         RefreshToken rt = refreshTokenRepository.findByToken(refreshToken);
         if (rt == null || rt.isRevoked() || rt.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Invalid refresh token");
         }
-        User user = userRepository.findById(rt.getUser().getId()).orElseThrow();
+        // Шаг 2: Находим пользователя
+        User user = rt.getUser();
+        // Шаг 3: Генерируем новый access-токен
         String newAccessToken = jwtUtil.generateAccessToken(
                 user.getUsername(),
                 user.getId(),
                 user.getFirstName() + " " + user.getLastName(),
                 user.getRole().name());
-        // Optionally: Отзови старый refresh и создай новый
+        // Шаг 4: Отзываем старый refresh-токен и создаём новый
         rt.setRevoked(true);
         refreshTokenRepository.save(rt);
         generateRefreshToken(user);  // новый refresh
+        // Шаг 5: Возвращаем новый access и refresh
         return newAccessToken;
     }
 }

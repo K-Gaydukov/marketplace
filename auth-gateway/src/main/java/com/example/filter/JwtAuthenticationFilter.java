@@ -27,26 +27,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-
+        // Шаг 1: Извлекаем токен из заголовка
         String token = request.getHeader("Authorization");
         if (token != null && token.startsWith("Bearer")) {
             token = token.substring(7);
             try {
+                // Шаг 2: Проверяем токен
                 Claims claims = jwtUtil.validateToken(token);
-                // Создай UserDetails из claims
+
+                // Шаг 3: Создаём UserDetails из claims
                 UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                        claims.getSubject(),
-                        "",
-                        List.of(new SimpleGrantedAuthority(claims.get("role", String.class))));
+                        claims.getSubject(),  // sub (username)
+                        "",  // Пароль не нужен
+                        List.of(new SimpleGrantedAuthority(claims.get("role", String.class))));  // Роль
+
+                // Шаг 4: Устанавливаем аутентификацию
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                         userDetails,
                         null,
                         userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception e) {
-                // Invalid token
+                logger.error("Invalid token: " + e.getMessage() + "!");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             }
         }
+        // Шаг 5: Продолжаем цепочку фильтров
         filterChain.doFilter(request, response);
     }
 }

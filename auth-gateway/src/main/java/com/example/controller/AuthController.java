@@ -2,8 +2,8 @@ package com.example.controller;
 
 import com.example.entity.User;
 import com.example.service.AuthService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -13,8 +13,16 @@ import java.util.Map;
 @RestController
 public class AuthController {
 
-    @Autowired
-    private AuthService authService;
+    private final AuthService authService;
+
+    public AuthController(AuthService authService) {
+        this.authService = authService;
+    }
+
+    @GetMapping("/test")
+    public String test() {
+        return "Auth-Gateway is working!";
+    }
 
     @PostMapping("/auth/register")
     public ResponseEntity<String> register(@RequestBody User user) {

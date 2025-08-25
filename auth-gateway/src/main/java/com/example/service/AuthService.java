@@ -6,7 +6,6 @@ import com.example.entity.User;
 import com.example.repository.RefreshTokenRepository;
 import com.example.repository.UserRepository;
 import com.example.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -17,18 +16,20 @@ import java.util.UUID;
 @Service
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final BCryptPasswordEncoder encoder;
+    private final JwtUtil jwtUtil;
+    private final RefreshTokenRepository refreshTokenRepository;
 
-    @Autowired
-    private BCryptPasswordEncoder encoder;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
-
+    public AuthService(UserRepository userRepository,
+                       BCryptPasswordEncoder encoder,
+                       JwtUtil jwtUtil,
+                       RefreshTokenRepository refreshTokenRepository) {
+        this.userRepository = userRepository;
+        this.encoder = encoder;
+        this.jwtUtil = jwtUtil;
+        this.refreshTokenRepository = refreshTokenRepository;
+    }
 
     public User register(User user) {
         user.setPasswordHash(encoder.encode(user.getPasswordHash()));  // Хешируем пароль
@@ -50,14 +51,14 @@ public class AuthService {
                 user.getFirstName() + " " + user.getLastName(),
                 user.getRole().name());
 
-        String refreshToken = generateRefreshToken(user.getId()); // Метод ниже
+        String refreshToken = generateRefreshToken(user); // Метод ниже
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
     }
 
-    private String generateRefreshToken(Long userId) {
+    private String generateRefreshToken(User user) {
         String token = UUID.randomUUID().toString(); // Или JWT
         RefreshToken rt = new RefreshToken();
-        rt.setId(userId);
+        rt.setUser(user);
         rt.setToken(token);
         rt.setExpiresAt(LocalDateTime.now().plusDays(7)); // 7 дней
         rt.setRevoked(false);
@@ -71,7 +72,7 @@ public class AuthService {
         if (rt == null || rt.isRevoked() || rt.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Invalid refresh token");
         }
-        User user = userRepository.findById(rt.getId()).orElseThrow();
+        User user = userRepository.findById(rt.getUser().getId()).orElseThrow();
         String newAccessToken = jwtUtil.generateAccessToken(
                 user.getUsername(),
                 user.getId(),
@@ -80,7 +81,7 @@ public class AuthService {
         // Optionally: Отзови старый refresh и создай новый
         rt.setRevoked(true);
         refreshTokenRepository.save(rt);
-        generateRefreshToken(user.getId());  // новый refresh
+        generateRefreshToken(user);  // новый refresh
         return newAccessToken;
     }
 }

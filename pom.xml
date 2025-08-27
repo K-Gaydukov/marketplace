@@ -28,6 +28,7 @@
         <liquibase.version>4.33.0</liquibase.version>
         <postgresql.version>42.7.4</postgresql.version>
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+        <mupstruct.version>1.5.3.Final</mupstruct.version>
     </properties>
 
     <dependencyManagement>
@@ -82,6 +83,17 @@
                 <artifactId>postgresql</artifactId>
                 <version>${postgresql.version}</version>
                 <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mupstruct.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${mupstruct.version}</version>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

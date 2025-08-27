@@ -1,23 +1,38 @@
 package com.example.controller;
 
 import com.example.dto.TokenResponse;
+import com.example.dto.UserDto;
 import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import com.example.repository.UserRepository;
 import com.example.service.AuthService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
 public class AuthController {
 
-    private final AuthService authService;
+    @Autowired
+    private UserMapper userMapper;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
+    @GetMapping("/auth/me")
+    public ResponseEntity<UserDto> getMe(Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("User not authenticated");
+        }
+        User user = userRepository.findByUsername(principal.getName());
+        return ResponseEntity.ok(userMapper.toDto(user));
     }
 
     @GetMapping("/test")

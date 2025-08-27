@@ -2,18 +2,18 @@ package com.example.controller;
 
 import com.example.dto.TokenResponse;
 import com.example.dto.UserDto;
+import com.example.dto.UserUpdateDto;
 import com.example.entity.User;
 import com.example.mapper.UserMapper;
 import com.example.repository.UserRepository;
 import com.example.service.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -25,6 +25,22 @@ public class AuthController {
     private UserRepository userRepository;
     @Autowired
     private AuthService authService;
+
+    @PostMapping("/auth/logout")
+    public ResponseEntity<String> logout(@RequestBody Map<String, String> body) {
+        authService.logout(body.get("refreshToken"));
+        return ResponseEntity.ok("Logged out");
+    }
+
+    @PutMapping("/auth/me")
+    public ResponseEntity<UserDto> updateMe(@Valid @RequestBody UserUpdateDto dto,
+                                            Principal principal) {
+        User user = userRepository.findByUsername(principal.getName());
+        userMapper.updateFromDto(dto, user);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        return ResponseEntity.ok(userMapper.toDto(user));
+    }
 
     @GetMapping("/auth/me")
     public ResponseEntity<UserDto> getMe(Principal principal) {

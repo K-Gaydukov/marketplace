@@ -7,6 +7,7 @@ import com.example.entity.User;
 import com.example.repository.RefreshTokenRepository;
 import com.example.repository.UserRepository;
 import com.example.util.JwtUtil;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,7 +34,7 @@ public class AuthService {
 
     public User register(User user) {
         user.setPasswordHash(encoder.encode(user.getPasswordHash()));  // Хешируем пароль
-        user.setRole(Role.ROLE_USER);
+//        user.setRole(Role.ROLE_USER);
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
@@ -88,5 +89,13 @@ public class AuthService {
         String newRefreshToken = generateRefreshToken(user);  // новый refresh
         // Шаг 5: Возвращаем новый access и refresh
         return new TokenResponse(newAccessToken, newRefreshToken, "Bearer", jwtUtil.getExpiration());
+    }
+
+    public void logout(String refreshToken) {
+        RefreshToken rt = refreshTokenRepository.findByToken(refreshToken);
+        if (rt != null) {
+            rt.setRevoked(true);
+            refreshTokenRepository.save(rt);
+        }
     }
 }

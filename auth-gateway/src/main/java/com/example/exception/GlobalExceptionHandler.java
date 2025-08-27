@@ -4,6 +4,7 @@ import com.example.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -12,8 +13,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(JwtValidationException.class)
     public ResponseEntity<ErrorResponse> handleJwtValidationException(JwtValidationException e,
                                                                       HttpServletRequest request) {
-        return new ResponseEntity<>
-                (new ErrorResponse(
+        return new ResponseEntity<>(
+                new ErrorResponse(
                         e.getMessage(),
                         request.getRequestURI()
                 ), HttpStatus.UNAUTHORIZED);
@@ -21,9 +22,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException e,
                                                                 HttpServletRequest request) {
-        return new ResponseEntity<>
-                (new ErrorResponse(
+        return new ResponseEntity<>(
+                new ErrorResponse(
                         e.getMessage(),
+                        request.getRequestURI()
+                ), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e,
+                                                                   HttpServletRequest request) {
+        String error = e.getBindingResult().getAllErrors().get(0).getDefaultMessage();
+        return new ResponseEntity<>(
+                new ErrorResponse(
+                        error,
                         request.getRequestURI()
                 ), HttpStatus.BAD_REQUEST);
     }

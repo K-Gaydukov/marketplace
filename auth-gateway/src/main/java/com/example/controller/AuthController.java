@@ -1,5 +1,6 @@
 package com.example.controller;
 
+import com.example.dto.TokenResponse;
 import com.example.entity.User;
 import com.example.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -31,12 +32,12 @@ public class AuthController {
     }
 
     @PostMapping("/auth/login")
-    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> credentials) {
+    public ResponseEntity<TokenResponse> login(@RequestBody Map<String, String> credentials) {
         return ResponseEntity.ok(authService.login(credentials.get("username"), credentials.get("password")));
     }
 
     @PostMapping("/auth/refresh")
-    public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> body) {
-        return ResponseEntity.ok(Map.of("accessToken", authService.refresh(body.get("refreshToken"))));
+    public ResponseEntity<TokenResponse> refresh(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(authService.refresh(body.get("refreshToken")));
     }
 }

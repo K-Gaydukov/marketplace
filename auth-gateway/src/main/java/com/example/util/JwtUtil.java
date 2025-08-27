@@ -1,7 +1,9 @@
 package com.example.util;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.example.exception.JwtValidationException;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.SignatureException;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +16,7 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
+    @Getter
     @Value("${jwt.expiration}")
     private Long expiration;        // Время жизни токена (application.properties)
 
@@ -52,8 +55,16 @@ public class JwtUtil {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new JwtValidationException("Token has expired", e);
+        } catch (SignatureException e) {
+            throw new JwtValidationException("Invalid token signature", e);
+        } catch (MalformedJwtException e) {
+            throw new JwtValidationException("Malformed token", e);
+        } catch (UnsupportedJwtException e) {
+            throw new JwtValidationException("Unsupported token format", e);
         } catch (Exception e) {
-            throw new RuntimeException("Invalid token: " + e.getMessage());
+            throw new JwtValidationException("Invalid token: " + e.getMessage(), e);
         }
     }
 

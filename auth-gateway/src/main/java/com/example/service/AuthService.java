@@ -1,5 +1,6 @@
 package com.example.service;
 
+import com.example.dto.TokenResponse;
 import com.example.entity.RefreshToken;
 import com.example.entity.Role;
 import com.example.entity.User;
@@ -10,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -40,7 +40,7 @@ public class AuthService {
         return userRepository.save(user);
     }
 
-    public Map<String, String> login(String username, String password) {
+    public TokenResponse login(String username, String password) {
         User user = userRepository.findByUsername(username);
         if (user == null || !encoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid credentials");
@@ -53,7 +53,7 @@ public class AuthService {
 
         String refreshToken = generateRefreshToken(user); // Метод ниже
 
-        return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
+        return new TokenResponse(accessToken, refreshToken, "Bearer", jwtUtil.getExpiration());
     }
 
     private String generateRefreshToken(User user) {
@@ -68,7 +68,7 @@ public class AuthService {
         return token;
     }
 
-    public String refresh(String refreshToken) {
+    public TokenResponse refresh(String refreshToken) {
         // Шаг 1: Проверяем refresh-токен
         RefreshToken rt = refreshTokenRepository.findByToken(refreshToken);
         if (rt == null || rt.isRevoked() || rt.getExpiresAt().isBefore(LocalDateTime.now())) {
@@ -85,8 +85,8 @@ public class AuthService {
         // Шаг 4: Отзываем старый refresh-токен и создаём новый
         rt.setRevoked(true);
         refreshTokenRepository.save(rt);
-        generateRefreshToken(user);  // новый refresh
+        String newRefreshToken = generateRefreshToken(user);  // новый refresh
         // Шаг 5: Возвращаем новый access и refresh
-        return newAccessToken;
+        return new TokenResponse(newAccessToken, newRefreshToken, "Bearer", jwtUtil.getExpiration());
     }
 }

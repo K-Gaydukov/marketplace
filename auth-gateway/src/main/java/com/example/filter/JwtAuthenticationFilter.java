@@ -1,5 +1,6 @@
 package com.example.filter;
 
+import com.example.exception.JwtValidationException;
 import com.example.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -29,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         // Шаг 1: Извлекаем токен из заголовка
         String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer")) {
+        if (token != null && token.startsWith("Bearer ")) {
             token = token.substring(7);
             try {
                 // Шаг 2: Проверяем токен
@@ -47,9 +48,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         null,
                         userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (Exception e) {
-                logger.error("Invalid token: " + e.getMessage() + "!");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            } catch (JwtValidationException e) {
+                throw e;  // Пробрасываем в GlobalExceptionHandler
             }
         }
         // Шаг 5: Продолжаем цепочку фильтров

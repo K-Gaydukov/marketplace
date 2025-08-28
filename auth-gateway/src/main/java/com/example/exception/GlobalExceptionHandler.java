@@ -16,11 +16,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(JwtValidationException.class)
     public ResponseEntity<ErrorResponse> handleJwtValidationException(JwtValidationException e,
                                                                       HttpServletRequest request) {
-        return new ResponseEntity<>(
-                new ErrorResponse(
-                        e.getMessage(),
-                        request.getRequestURI()
-                ), HttpStatus.UNAUTHORIZED);
+        ErrorResponse response = new ErrorResponse(e.getMessage(), request.getRequestURI());
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setCode("JWT_VALIDATION_ERROR");
+        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
     }
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException e,
@@ -38,10 +37,9 @@ public class GlobalExceptionHandler {
         String error = e.getBindingResult().getAllErrors().stream()
                 .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
-        return new ResponseEntity<>(
-                new ErrorResponse(
-                        error,
-                        request.getRequestURI()
-                ), HttpStatus.BAD_REQUEST);
+        ErrorResponse response = new ErrorResponse(e.getMessage(), request.getRequestURI());
+        response.setStatus(HttpStatus.BAD_REQUEST.value());
+        response.setCode("VALIDATION_ERROR");
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }

@@ -2,18 +2,19 @@ package com.example.dto;
 
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 public class ErrorResponse {
 
-    private String error;
-    private String timestamp;
+    private Instant timestamp = Instant.now();
+    private int status;
+    private String code;
+    private String message;
     private String path;
 
-    public ErrorResponse(String error, String path) {
-        this.error = error;
-        this.timestamp = LocalDateTime.now().toString();
+    public ErrorResponse(String message, String path) {
+        this.message = message;
         this.path = path;
 
     }

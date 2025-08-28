@@ -46,6 +46,9 @@ public class AuthService {
         if (user == null || !encoder.matches(password, user.getPasswordHash())) {
             throw new RuntimeException("Invalid credentials");
         }
+        if (!user.isActive()) {
+            throw new RuntimeException("User not active");
+        }
         String accessToken = jwtUtil.generateAccessToken(
                 username,
                 user.getId(),

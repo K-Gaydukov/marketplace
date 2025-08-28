@@ -1,6 +1,7 @@
 package com.example.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ public class User {
     @Column(name = "username", nullable = false, unique = true)
     private String username;
 
+    @Email
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 

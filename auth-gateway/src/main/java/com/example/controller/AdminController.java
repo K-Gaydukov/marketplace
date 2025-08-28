@@ -39,12 +39,12 @@ public class AdminController {
     }
 
     @GetMapping("/{id}")
-    public UserDto getUser(@PathVariable Long id) {
+    public UserDto getUser(@PathVariable("id") Long id) {
         return userMapper.toDto(userRepository.findById(id).orElseThrow());
     }
 
     @PutMapping("/{id}")
-    public UserDto updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDto dto) {
+    public UserDto updateUser(@PathVariable("id") Long id, @Valid @RequestBody UserUpdateDto dto) {
         User user = userRepository.findById(id).orElseThrow();
         userMapper.updateFromDto(dto, user);
         user.setUpdatedAt(LocalDateTime.now());
@@ -52,7 +52,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<String> deleteUser(@PathVariable("id") Long id) {
         User user = userRepository.findById(id).orElseThrow();
         user.setActive(false);
         userRepository.save(user);

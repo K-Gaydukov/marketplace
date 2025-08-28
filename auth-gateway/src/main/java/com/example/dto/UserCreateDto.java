@@ -7,11 +7,13 @@ import lombok.Data;
 @Data
 public class UserCreateDto {
 
+    @NotBlank(message = "Username required")
+    private String username;
+    @Email(message = "Invalid email")
+    private String email;
     @NotBlank(message = "Password required")
     private String password;
     private String role;
-    @Email(message = "Invalid email")
-    private String email;
     @NotBlank(message = "First name required")
     private String firstName;
     @NotBlank(message = "Last name required")

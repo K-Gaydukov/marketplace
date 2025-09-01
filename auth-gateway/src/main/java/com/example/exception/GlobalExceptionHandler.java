@@ -16,30 +16,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(JwtValidationException.class)
     public ResponseEntity<ErrorResponse> handleJwtValidationException(JwtValidationException e,
                                                                       HttpServletRequest request) {
-        ErrorResponse response = new ErrorResponse(e.getMessage(), request.getRequestURI());
-        response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        response.setCode("JWT_VALIDATION_ERROR");
-        return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(new ErrorResponse(
+                "JWT_ERROR",
+                e.getMessage(),
+                request.getRequestURI(),
+                HttpStatus.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
     }
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException e,
                                                                 HttpServletRequest request) {
         return new ResponseEntity<>(
                 new ErrorResponse(
+                        "INTERNAL_ERROR",
                         e.getMessage(),
-                        request.getRequestURI()
-                ), HttpStatus.BAD_REQUEST);
+                        request.getRequestURI(),
+                        HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e,
                                                                    HttpServletRequest request) {
-        String error = e.getBindingResult().getAllErrors().stream()
+        String message = e.getBindingResult().getAllErrors().stream()
                 .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
-        ErrorResponse response = new ErrorResponse(e.getMessage(), request.getRequestURI());
-        response.setStatus(HttpStatus.BAD_REQUEST.value());
-        response.setCode("VALIDATION_ERROR");
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorResponse(
+                "VALIDATION_ERROR",
+                message,
+                request.getRequestURI(),
+                HttpStatus.BAD_REQUEST
+                ), HttpStatus.BAD_REQUEST);
     }
 }

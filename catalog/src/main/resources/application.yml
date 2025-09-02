@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/catalog
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: none
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yml
+server:
+  port: 8081
+logging.level.org.springframework.security: DEBUG

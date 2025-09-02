@@ -8,6 +8,7 @@ import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.stream.Collectors;
 
@@ -45,5 +46,13 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 HttpStatus.BAD_REQUEST
                 ), HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(HttpClientErrorException.class)
+    public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e, HttpServletRequest request) {
+        return new ResponseEntity<>(new ErrorResponse(
+                "PROXY_ERROR",
+                e.getMessage(),
+                request.getRequestURI(),
+                (HttpStatus) e.getStatusCode()), e.getStatusCode());
     }
 }

@@ -100,7 +100,8 @@ public class CatalogService {
     }
 
     public ProductDto updateProduct(Long id, ProductDto dto) {
-        Product product = productRepository.findById(id).orElseThrow();
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
         product.setSku(dto.getSku());
         product.setName(dto.getName());
         product.setDescription(dto.getDescription());

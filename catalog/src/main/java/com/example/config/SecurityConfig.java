@@ -2,6 +2,7 @@ package com.example.config;
 
 import com.example.filter.JwtAuthenticationFilter;
 import com.example.util.JwtUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -30,11 +31,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/categories/**", "/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/categories/**", "/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/categories/**", "/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH, "/categories/**", "/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/products/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint((request,
+                                                            response,
+                                                            authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Unauthorized\", \"path\": \"" + request.getRequestURI() + "\"}");
+                }))
                 .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

@@ -18,7 +18,7 @@ public class JwtUtil {
 
     @Getter
     @Value("${jwt.expiration}")
-    private Long expiration;        // Время жизни токена (application.properties)
+    private Long expiration;        // Время жизни токена (application.yml)
 
     @Value("${jwt.issuer}")
     private String issuer;          // Имя создателя токена (н-р: marketplace)

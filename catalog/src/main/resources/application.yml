@@ -10,4 +10,7 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yml
 server:
   port: 8081
+jwt:
+  expiration: 900000  # 15 ????? ? ?????????????
+  issuer: catalog
 logging.level.org.springframework.security: DEBUG

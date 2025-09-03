@@ -13,6 +13,7 @@
         <module>auth-gateway</module>
         <module>catalog</module>
         <module>order</module>
+        <module>common</module>
     </modules>
 
     <properties>

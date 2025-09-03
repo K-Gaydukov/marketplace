@@ -20,7 +20,7 @@ import java.util.Optional;
 public class CatalogClient {
 
     private final RestTemplate restTemplate;
-    @Value("${catalog.url")
+    @Value("${catalog.url}")
     private String catalogUrl;
 
     public CatalogClient(RestTemplate restTemplate) {

@@ -2,12 +2,10 @@ package com.example.service;
 
 import com.example.dto.TokenResponse;
 import com.example.entity.RefreshToken;
-import com.example.entity.Role;
 import com.example.entity.User;
 import com.example.repository.RefreshTokenRepository;
 import com.example.repository.UserRepository;
 import com.example.util.JwtUtil;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 

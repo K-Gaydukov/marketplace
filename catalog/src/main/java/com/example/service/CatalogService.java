@@ -37,7 +37,7 @@ public class CatalogService {
         Specification<Category> spec = Specification.where(null);
         if (name != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(root.get("name"), "%" + name + "%"));
+                    cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
         }
         Page<Category> page = categoryRepository.findAll(spec, pageable);
         return new PageDto<>(page.map(categoryMapper::toDto));
@@ -52,14 +52,19 @@ public class CatalogService {
     }
 
     public Optional<CategoryDto> getCategory(Long id) {
+
         return categoryRepository.findById(id).map(categoryMapper::toDto);
     }
 
     public CategoryDto updateCategory(Long id, CategoryDto dto) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        category.setName(dto.getName());
-        category.setDescription(dto.getDescription());
+                .orElseThrow(() -> new RuntimeException("Category with id " + id + " not found"));
+        if (dto.getName() != null) {
+            category.setName(dto.getName());
+        }
+        if (dto.getDescription() != null) {
+            category.setDescription(dto.getDescription());
+        }
         category.setUpdatedAt(LocalDateTime.now());
         return categoryMapper.toDto(categoryRepository.save(category));
     }
@@ -78,7 +83,7 @@ public class CatalogService {
         if (categoryId != null) spec = spec.and((root, query, cb) ->
                 cb.equal(root.get("category").get("id"), categoryId));
         if (q != null) spec = spec.and((root, query, cb) ->
-                cb.like(root.get("name"), "%" + q + "%"));
+                cb.like(cb.lower(root.get("name")), "%" + q.toLowerCase() + "%"));
         if (minPrice != null) spec = spec.and((root, query, cb) ->
                 cb.ge(root.get("price"), minPrice));
         if (maxPrice != null) spec = spec.and((root, query, cb) ->
@@ -92,7 +97,7 @@ public class CatalogService {
     public ProductDto createProduct(ProductDto dto) {
         Product product = productMapper.toEntity(dto);
         product.setCategory(categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found")));
+                .orElseThrow(() -> new RuntimeException("Category with id " + dto.getCategoryId() + " not found")));
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
         return productMapper.toDto(productRepository.save(product));
@@ -104,15 +109,29 @@ public class CatalogService {
 
     public ProductDto updateProduct(Long id, ProductDto dto) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
-        product.setSku(dto.getSku());
-        product.setName(dto.getName());
-        product.setDescription(dto.getDescription());
-        product.setPrice(dto.getPrice());
-        product.setStock(dto.getStock());
-        product.setActive(dto.isActive());
-        product.setCategory(categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category not found")));
+                .orElseThrow(() -> new RuntimeException("Product with id " + id + " not found"));
+        if (dto.getSku() != null) {
+            product.setSku(dto.getSku());
+        }
+        if (dto.getName() != null) {
+            product.setName(dto.getName());
+        }
+        if (dto.getDescription() != null) {
+            product.setDescription(dto.getDescription());
+        }
+        if (dto.getPrice() != null) {
+            product.setPrice(dto.getPrice());
+        }
+        if (dto.getStock() != null) {
+            product.setStock(dto.getStock());
+        }
+        if (dto.getIsActive() != null) {
+            product.setActive(dto.getIsActive());
+        }
+        if (dto.getCategoryId() != null) {
+            product.setCategory(categoryRepository.findById(dto.getCategoryId())
+                    .orElseThrow(() -> new RuntimeException("Category with id " + dto.getCategoryId() + " not found")));
+        }
         product.setUpdatedAt(LocalDateTime.now());
         return productMapper.toDto(productRepository.save(product));
     }
@@ -123,7 +142,7 @@ public class CatalogService {
 
     public ProductDto updateStock(Long id, Integer delta) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product not found"));
+                .orElseThrow(() -> new RuntimeException("Product with id " + id + " not found"));
         product.setStock(product.getStock() + delta);
         if (product.getStock() < 0) {
             throw new RuntimeException("Stock cannot be negative");

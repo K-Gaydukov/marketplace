@@ -11,12 +11,16 @@ spring:
 server:
   port: 8080
 jwt:
-  expiration: 900000  # 15 ????? ? ?????????????
+  expiration: 900000  # 15 min
   issuer: auth-gateway
 catalog:
   url: http://localhost:8081
 logging:
   level:
+    root: INFO
+    com.example.auth-gateway: DEBUG
+    org.springframework.web: DEBUG
+    org.apache.http: DEBUG
     com.fasterxml.jackson: DEBUG
     org.springframework.web.client: DEBUG
     com.example: DEBUG

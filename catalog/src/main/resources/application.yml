@@ -11,10 +11,13 @@ spring:
 server:
   port: 8081
 jwt:
-  expiration: 900000  # 15 ????? ? ?????????????
+  expiration: 900000  # 15 min
   issuer: catalog
 logging:
   level:
+    root: INFO
+    com.example.catalog: DEBUG
+    org.springframework.web: DEBUG
     com.fasterxml.jackson: DEBUG
     org.springframework.web.client: DEBUG
     com.example: DEBUG

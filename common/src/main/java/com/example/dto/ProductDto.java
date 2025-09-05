@@ -13,7 +13,7 @@ public class ProductDto {
     private String description;
     private BigDecimal price;
     private Integer stock;
-    private boolean isActive;
+    private Boolean isActive;
     private Long categoryId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

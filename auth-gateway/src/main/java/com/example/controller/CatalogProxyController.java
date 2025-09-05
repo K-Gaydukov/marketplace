@@ -98,7 +98,7 @@ public class CatalogProxyController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/products/{id}")
+    @PatchMapping("/products/{id}/stock")
     public ProductDto updateStock(HttpServletRequest request,
                                   @PathVariable Long id,
                                   @RequestParam Integer delta) {

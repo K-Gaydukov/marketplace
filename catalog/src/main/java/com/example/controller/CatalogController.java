@@ -2,9 +2,9 @@ package com.example.controller;
 
 
 import com.example.dto.CategoryDto;
+import com.example.dto.PageDto;
 import com.example.dto.ProductDto;
 import com.example.service.CatalogService;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +21,7 @@ public class CatalogController {
     }
 
     @GetMapping("/categories")
-    public Page<CategoryDto> getCategories(Pageable pageable, @RequestParam(required = false) String name) {
+    public PageDto<CategoryDto> getCategories(Pageable pageable, @RequestParam(required = false) String name) {
         return catalogService.getCategories(pageable, name);
     }
 
@@ -49,7 +49,7 @@ public class CatalogController {
     }
 
     @GetMapping("/products")
-    public Page<ProductDto> getProducts(Pageable pageable,
+    public PageDto<ProductDto> getProducts(Pageable pageable,
                                         @RequestParam(required = false) Long categoryId,
                                         @RequestParam(required = false) String q,
                                         @RequestParam(required = false) BigDecimal minPrice,

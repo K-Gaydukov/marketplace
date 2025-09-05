@@ -1,6 +1,7 @@
 package com.example.service;
 
 import com.example.dto.CategoryDto;
+import com.example.dto.PageDto;
 import com.example.dto.ProductDto;
 import com.example.entity.Category;
 import com.example.entity.Product;
@@ -32,13 +33,14 @@ public class CatalogService {
         this.productMapper = productMapper;
     }
 
-    public Page<CategoryDto> getCategories(Pageable pageable, String name) {
+    public PageDto<CategoryDto> getCategories(Pageable pageable, String name) {
         Specification<Category> spec = Specification.where(null);
         if (name != null) {
             spec = spec.and((root, query, cb) ->
                     cb.like(root.get("name"), "%" + name + "%"));
         }
-        return categoryRepository.findAll(spec, pageable).map(categoryMapper::toDto);
+        Page<Category> page = categoryRepository.findAll(spec, pageable);
+        return new PageDto<>(page.map(categoryMapper::toDto));
     }
 
     public CategoryDto createCategory(CategoryDto dto) {
@@ -66,7 +68,7 @@ public class CatalogService {
         categoryRepository.deleteById(id);
     }
 
-    public Page<ProductDto> getProducts(Pageable pageable,
+    public PageDto<ProductDto> getProducts(Pageable pageable,
                                         Long categoryId,
                                         String q,
                                         BigDecimal minPrice,
@@ -83,7 +85,8 @@ public class CatalogService {
                 cb.le(root.get("price"), maxPrice));
         if (onlyActive != null) spec = spec.and((root, query, cb) ->
                 cb.equal(root.get("isActive"), onlyActive));
-        return productRepository.findAll(spec, pageable).map(productMapper::toDto);
+        Page<Product> page = productRepository.findAll(spec, pageable);
+        return new PageDto<>(page.map(productMapper::toDto));
     }
 
     public ProductDto createProduct(ProductDto dto) {

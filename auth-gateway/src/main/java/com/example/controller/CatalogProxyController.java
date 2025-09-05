@@ -2,9 +2,9 @@ package com.example.controller;
 
 import com.example.client.CatalogClient;
 import com.example.dto.CategoryDto;
+import com.example.dto.PageDto;
 import com.example.dto.ProductDto;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,10 +26,10 @@ public class CatalogProxyController {
     }
 
     @GetMapping("/categories")
-    public Page<CategoryDto> getCategories(HttpServletRequest request,
-                                           @RequestParam(defaultValue = "0") int page,
-                                           @RequestParam(defaultValue = "10") int size,
-                                           @RequestParam(required = false) String name) {
+    public PageDto<CategoryDto> getCategories(HttpServletRequest request,
+                                              @RequestParam(defaultValue = "0") int page,
+                                              @RequestParam(defaultValue = "10") int size,
+                                              @RequestParam(required = false) String name) {
         return catalogClient.getCategories(getToken(request), page, size, name);
     }
 
@@ -60,7 +60,7 @@ public class CatalogProxyController {
     }
 
     @GetMapping("/products")
-    public Page<ProductDto> getProducts(HttpServletRequest request,
+    public PageDto<ProductDto> getProducts(HttpServletRequest request,
                                         @RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "10") int size,
                                         @RequestParam(required = false) Long categoryId,

@@ -1,10 +1,10 @@
 package com.example.client;
 
 import com.example.dto.CategoryDto;
+import com.example.dto.PageDto;
 import com.example.dto.ProductDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,14 +20,15 @@ import java.util.Optional;
 public class CatalogClient {
 
     private final RestTemplate restTemplate;
-    @Value("${catalog.url}")
-    private String catalogUrl;
+    private final String catalogUrl;
 
-    public CatalogClient(RestTemplate restTemplate) {
+    public CatalogClient(RestTemplate restTemplate,
+                         @Value("${catalog.url}") String catalogUrl) {
         this.restTemplate = restTemplate;
+        this.catalogUrl = catalogUrl;
     }
 
-    public Page<CategoryDto> getCategories(String token, int page, int size, String name) {
+    public PageDto<CategoryDto> getCategories(String token, int page, int size, String name) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
@@ -36,11 +37,8 @@ public class CatalogClient {
                 .queryParam("size", size)
                 .queryParamIfPresent("name", Optional.ofNullable(name))
                 .toUriString();
-        ResponseEntity<Page<CategoryDto>> response = restTemplate.exchange(
-                url,
-                HttpMethod.GET,
-                entity,
-                new ParameterizedTypeReference<Page<CategoryDto>>() {});
+        ResponseEntity<PageDto<CategoryDto>> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, new ParameterizedTypeReference<PageDto<CategoryDto>>() {});
         return response.getBody();
     }
 
@@ -56,7 +54,7 @@ public class CatalogClient {
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
         return restTemplate.exchange(
-                catalogUrl + "/categories" + id, HttpMethod.GET, entity, CategoryDto.class);
+                catalogUrl + "/categories/" + id, HttpMethod.GET, entity, CategoryDto.class);
     }
 
     public CategoryDto updateCategory(String token, Long id, CategoryDto dto) {
@@ -64,17 +62,17 @@ public class CatalogClient {
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<CategoryDto> entity = new HttpEntity<>(dto, headers);
         return restTemplate.exchange(
-                catalogUrl + "/categories" + id, HttpMethod.PUT, entity, CategoryDto.class).getBody();
+                catalogUrl + "/categories/" + id, HttpMethod.PUT, entity, CategoryDto.class).getBody();
     }
 
     public void deleteCategory(String token, Long id) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
-        restTemplate.exchange(catalogUrl + "/categories" + id, HttpMethod.DELETE, entity, Value.class);
+        restTemplate.exchange(catalogUrl + "/categories/" + id, HttpMethod.DELETE, entity, Value.class);
     }
 
-    public Page<ProductDto> getProducts(String token,
+    public PageDto<ProductDto> getProducts(String token,
                                         int page,
                                         int size,
                                         Long categoryId,
@@ -94,8 +92,8 @@ public class CatalogClient {
                 .queryParamIfPresent("maxPrice", Optional.ofNullable(maxPrice))
                 .queryParamIfPresent("onlyActive", Optional.ofNullable(onlyActive))
                 .toUriString();
-        ResponseEntity<Page<ProductDto>> response = restTemplate.exchange(
-                url, HttpMethod.GET, entity, new ParameterizedTypeReference<Page<ProductDto>>() {});
+        ResponseEntity<PageDto<ProductDto>> response = restTemplate.exchange(
+                url, HttpMethod.GET, entity, new ParameterizedTypeReference<PageDto<ProductDto>>() {});
         return response.getBody();
     }
 
@@ -111,7 +109,7 @@ public class CatalogClient {
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
         return restTemplate.exchange(
-                catalogUrl + "/products" + id, HttpMethod.GET, entity, ProductDto.class);
+                catalogUrl + "/products/" + id, HttpMethod.GET, entity, ProductDto.class);
     }
 
     public ProductDto updateProduct(String token, Long id, ProductDto dto) {
@@ -119,21 +117,21 @@ public class CatalogClient {
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<ProductDto> entity = new HttpEntity<>(dto, headers);
         return restTemplate.exchange(
-                catalogUrl + "/products" + id, HttpMethod.PUT, entity, ProductDto.class).getBody();
+                catalogUrl + "/products/" + id, HttpMethod.PUT, entity, ProductDto.class).getBody();
     }
 
     public void deleteProduct(String token, Long id) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
-        restTemplate.exchange(catalogUrl + "/products" + id, HttpMethod.DELETE, entity, Void.class);
+        restTemplate.exchange(catalogUrl + "/products/" + id, HttpMethod.DELETE, entity, Void.class);
     }
 
     public ProductDto updateStock(String token, Long id, Integer delta) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
-        String url = UriComponentsBuilder.fromHttpUrl(catalogUrl + "/products" + id + "/stock")
+        String url = UriComponentsBuilder.fromHttpUrl(catalogUrl + "/products/" + id + "/stock")
                 .queryParam("delta", delta)
                 .toUriString();
         return restTemplate.exchange(url, HttpMethod.PATCH, entity, ProductDto.class).getBody();

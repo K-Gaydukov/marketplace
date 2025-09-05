@@ -13,4 +13,8 @@ server:
 jwt:
   expiration: 900000  # 15 ????? ? ?????????????
   issuer: catalog
-logging.level.org.springframework.security: DEBUG
+logging:
+  level:
+    com.fasterxml.jackson: DEBUG
+    org.springframework.web.client: DEBUG
+    com.example: DEBUG

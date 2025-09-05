@@ -15,4 +15,8 @@ jwt:
   issuer: auth-gateway
 catalog:
   url: http://localhost:8081
-logging.level.org.springframework.security: DEBUG
+logging:
+  level:
+    com.fasterxml.jackson: DEBUG
+    org.springframework.web.client: DEBUG
+    com.example: DEBUG

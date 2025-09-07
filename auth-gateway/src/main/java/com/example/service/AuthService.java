@@ -2,17 +2,21 @@ package com.example.service;
 
 import com.example.dto.TokenResponse;
 import com.example.entity.RefreshToken;
+import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.exception.ValidationException;
 import com.example.repository.RefreshTokenRepository;
 import com.example.repository.UserRepository;
 import com.example.util.JwtUtil;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -32,7 +36,7 @@ public class AuthService {
 
     public User register(User user) {
         user.setPasswordHash(encoder.encode(user.getPasswordHash()));  // Хешируем пароль
-//        user.setRole(Role.ROLE_USER);
+        user.setRole(Role.ROLE_USER);
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setUpdatedAt(LocalDateTime.now());
@@ -42,7 +46,7 @@ public class AuthService {
     public TokenResponse login(String username, String password) {
         User user = userRepository.findByUsername(username);
         if (user == null || !encoder.matches(password, user.getPasswordHash())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new ValidationException("Invalid credentials");
         }
         if (!user.isActive()) {
             throw new RuntimeException("User not active");
@@ -50,7 +54,7 @@ public class AuthService {
         String accessToken = jwtUtil.generateAccessToken(
                 username,
                 user.getId(),
-                user.getFirstName() + " " + user.getLastName(),
+                user.getLastName() + " " + user.getFirstName() + " " + user.getMiddleName(),
                 user.getRole().name());
 
         String refreshToken = generateRefreshToken(user); // Метод ниже
@@ -74,7 +78,7 @@ public class AuthService {
         // Шаг 1: Проверяем refresh-токен
         RefreshToken rt = refreshTokenRepository.findByToken(refreshToken);
         if (rt == null || rt.isRevoked() || rt.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Invalid refresh token");
+            throw new ValidationException("Invalid refresh token");
         }
         // Шаг 2: Находим пользователя
         User user = rt.getUser();

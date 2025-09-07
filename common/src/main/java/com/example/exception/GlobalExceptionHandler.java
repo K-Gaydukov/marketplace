@@ -23,15 +23,15 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 HttpStatus.UNAUTHORIZED), HttpStatus.UNAUTHORIZED);
     }
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleRuntimeException(RuntimeException e,
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleRuntimeException(Exception e,
                                                                 HttpServletRequest request) {
         return new ResponseEntity<>(
                 new ErrorResponse(
                         "INTERNAL_ERROR",
                         e.getMessage(),
                         request.getRequestURI(),
-                        HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+                        HttpStatus.INTERNAL_SERVER_ERROR), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -48,11 +48,37 @@ public class GlobalExceptionHandler {
                 ), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(HttpClientErrorException.class)
-    public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e,
+                                                               HttpServletRequest request) {
+        String code = switch (e.getStatusCode().value()) {
+            case 404 -> "NOT_FOUND";
+            case 422 -> "UNPROCESSABLE_ENTITY";
+            default -> "PROXY_ERROR";
+        };
         return new ResponseEntity<>(new ErrorResponse(
-                "PROXY_ERROR",
+                code,
                 e.getMessage(),
                 request.getRequestURI(),
                 (HttpStatus) e.getStatusCode()), e.getStatusCode());
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundException e,
+                                                                 HttpServletRequest request) {
+        return new ResponseEntity<>(new ErrorResponse(
+                "NOT_FOUND",
+                e.getMessage(),
+                request.getRequestURI(),
+                HttpStatus.NOT_FOUND), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(ValidationException e,
+                                                                   HttpServletRequest request) {
+        return new ResponseEntity<>(new ErrorResponse(
+                "VALIDATION_ERROR",
+                e.getMessage(),
+                request.getRequestURI(),
+                HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
     }
 }

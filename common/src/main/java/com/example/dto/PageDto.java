@@ -23,7 +23,7 @@ public class PageDto<T> {
     public PageDto() {
     }
 
-    public PageDto(org.springframework.data.domain.Page<T> page) {
+    public PageDto(Page<T> page) {
         this.content = page.getContent();
         this.pageable = new PageableDto(
                 page.getPageable().getPageNumber(),

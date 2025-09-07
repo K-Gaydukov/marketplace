@@ -1,10 +1,12 @@
 package com.example.service;
 
-import com.example.dto.CategoryDto;
+import com.example.dto.catalog.CategoryDto;
 import com.example.dto.PageDto;
-import com.example.dto.ProductDto;
+import com.example.dto.catalog.ProductDto;
 import com.example.entity.Category;
 import com.example.entity.Product;
+import com.example.exception.NotFoundException;
+import com.example.exception.ValidationException;
 import com.example.mapper.CategoryMapper;
 import com.example.mapper.ProductMapper;
 import com.example.repository.CategoryRepository;
@@ -13,12 +15,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class CatalogService {
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
@@ -33,6 +37,7 @@ public class CatalogService {
         this.productMapper = productMapper;
     }
 
+    @Transactional(readOnly = true)
     public PageDto<CategoryDto> getCategories(Pageable pageable, String name) {
         Specification<Category> spec = Specification.where(null);
         if (name != null) {
@@ -51,6 +56,7 @@ public class CatalogService {
         return categoryMapper.toDto(categoryRepository.save(category));
     }
 
+    @Transactional(readOnly = true)
     public Optional<CategoryDto> getCategory(Long id) {
 
         return categoryRepository.findById(id).map(categoryMapper::toDto);
@@ -58,7 +64,7 @@ public class CatalogService {
 
     public CategoryDto updateCategory(Long id, CategoryDto dto) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category with id " + id + " not found"));
+                .orElseThrow(() -> new NotFoundException("Category with id " + id + " not found"));
         if (dto.getName() != null) {
             category.setName(dto.getName());
         }
@@ -73,6 +79,7 @@ public class CatalogService {
         categoryRepository.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
     public PageDto<ProductDto> getProducts(Pageable pageable,
                                         Long categoryId,
                                         String q,
@@ -97,19 +104,20 @@ public class CatalogService {
     public ProductDto createProduct(ProductDto dto) {
         Product product = productMapper.toEntity(dto);
         product.setCategory(categoryRepository.findById(dto.getCategoryId())
-                .orElseThrow(() -> new RuntimeException("Category with id " + dto.getCategoryId() + " not found")));
+                .orElseThrow(() -> new NotFoundException("Category with id " + dto.getCategoryId() + " not found")));
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
         return productMapper.toDto(productRepository.save(product));
     }
 
+    @Transactional(readOnly = true)
     public Optional<ProductDto> getProduct(Long id) {
         return productRepository.findById(id).map(productMapper::toDto);
     }
 
     public ProductDto updateProduct(Long id, ProductDto dto) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product with id " + id + " not found"));
+                .orElseThrow(() -> new NotFoundException("Product with id " + id + " not found"));
         if (dto.getSku() != null) {
             product.setSku(dto.getSku());
         }
@@ -130,7 +138,7 @@ public class CatalogService {
         }
         if (dto.getCategoryId() != null) {
             product.setCategory(categoryRepository.findById(dto.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category with id " + dto.getCategoryId() + " not found")));
+                    .orElseThrow(() -> new NotFoundException("Category with id " + dto.getCategoryId() + " not found")));
         }
         product.setUpdatedAt(LocalDateTime.now());
         return productMapper.toDto(productRepository.save(product));
@@ -142,10 +150,10 @@ public class CatalogService {
 
     public ProductDto updateStock(Long id, Integer delta) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product with id " + id + " not found"));
+                .orElseThrow(() -> new NotFoundException("Product with id " + id + " not found"));
         product.setStock(product.getStock() + delta);
         if (product.getStock() < 0) {
-            throw new RuntimeException("Stock cannot be negative");
+            throw new ValidationException("Stock cannot be negative");
         }
         product.setUpdatedAt(LocalDateTime.now());
         return productMapper.toDto(productRepository.save(product));

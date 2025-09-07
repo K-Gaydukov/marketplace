@@ -10,3 +10,16 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yml
 server:
   port: 8082
+jwt:
+  expiration: 900000  # 15 min
+  issuer: order
+catalog:
+  url: http://localhost:8081
+logging:
+  level:
+    root: INFO
+    com.example.order: DEBUG
+    org.springframework.web: DEBUG
+    com.fasterxml.jackson: DEBUG
+    org.springframework.web.client: DEBUG
+    com.example: DEBUG

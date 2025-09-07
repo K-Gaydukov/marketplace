@@ -1,8 +1,8 @@
 package com.example.client;
 
-import com.example.dto.CategoryDto;
+import com.example.dto.catalog.CategoryDto;
 import com.example.dto.PageDto;
-import com.example.dto.ProductDto;
+import com.example.dto.catalog.ProductDto;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;

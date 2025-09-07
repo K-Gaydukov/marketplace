@@ -1,9 +1,9 @@
 package com.example.controller;
 
 import com.example.client.CatalogClient;
-import com.example.dto.CategoryDto;
+import com.example.dto.catalog.CategoryDto;
 import com.example.dto.PageDto;
-import com.example.dto.ProductDto;
+import com.example.dto.catalog.ProductDto;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,9 +1,9 @@
 package com.example.controller;
 
 
-import com.example.dto.CategoryDto;
+import com.example.dto.catalog.CategoryDto;
 import com.example.dto.PageDto;
-import com.example.dto.ProductDto;
+import com.example.dto.catalog.ProductDto;
 import com.example.service.CatalogService;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;

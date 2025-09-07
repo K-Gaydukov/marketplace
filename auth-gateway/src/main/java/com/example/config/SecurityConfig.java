@@ -28,18 +28,23 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        // Auth endpoints
                         .requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
-
+                        .requestMatchers("/auth/me", "/auth/logout").hasAnyRole("USER", "ADMIN")
+                        // Users endpoints
+                        .requestMatchers("/users/**").hasRole("ADMIN")
+                        // Catalog endpoints
                         .requestMatchers(HttpMethod.GET, "/catalog/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/catalog/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/catalog/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/catalog/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/catalog/**").hasRole("ADMIN")
-
-                        .requestMatchers("/auth/me", "/auth/logout").hasAnyRole("USER", "ADMIN")
-
-                        .requestMatchers("/users/**").hasRole("ADMIN")
-
+                        // Order endpoints
+                        .requestMatchers(HttpMethod.GET, "/order/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/order/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/order/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/order/**").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/order/*/status").hasRole( "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

@@ -1,6 +1,6 @@
 package com.example.mapper;
 
-import com.example.dto.CategoryDto;
+import com.example.dto.catalog.CategoryDto;
 import com.example.entity.Category;
 import org.mapstruct.Mapper;
 

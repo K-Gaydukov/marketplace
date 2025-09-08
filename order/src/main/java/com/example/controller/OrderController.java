@@ -25,62 +25,62 @@ public class OrderController {
     public PageDto<OrderSummaryDto> getOrders(Pageable pageable,
                                               @RequestParam(required = false) String status,
                                               @RequestParam(required = false) Long userId,
-                                              Principal principal) {
-        return orderService.getOrders(pageable, status, userId, (Authentication) principal);
+                                              Authentication authentication) {
+        return orderService.getOrders(pageable, status, userId, authentication);
     }
 
     @PostMapping
     public OrderDto createOrder(@Valid @RequestBody OrderRequestDto dto,
-                                Principal principal) {
-        return orderService.createOrder(principal.getName(), dto, (Authentication) principal);
+                                Authentication authentication) {
+        return orderService.createOrder(dto, authentication);
     }
 
     @GetMapping("/{id}")
     public OrderDto getOrder(@PathVariable Long id,
-                             Principal principal) {
-        return orderService.getOrder(id, (Authentication) principal);
+                             Authentication authentication) {
+        return orderService.getOrder(id, authentication);
     }
 
     @PutMapping("/{id}")
     public OrderDto updateOrder(@PathVariable Long id,
                                 @Valid @RequestBody OrderRequestDto dto,
-                                Principal principal) {
-        return orderService.updateOrder(id, dto, (Authentication) principal);
+                                Authentication authentication) {
+        return orderService.updateOrder(id, dto, authentication);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteOrder(@PathVariable Long id,
-                                            Principal principal) {
-        orderService.deleteOrder(id, (Authentication) principal);
+                                            Authentication authentication) {
+        orderService.deleteOrder(id, authentication);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/{id}/status")
     public OrderDto updateStatus(@PathVariable Long id,
                                  @RequestBody OrderStatusDto statusDto,
-                                 Principal principal) {
-        return orderService.updateStatus(id, statusDto.getStatus(), (Authentication) principal);
+                                 Authentication authentication) {
+        return orderService.updateStatus(id, statusDto.getStatus(), authentication);
     }
 
     @PostMapping("/{orderId}/items")
     public OrderDto addOrderItem(@PathVariable Long orderId,
                                  @Valid @RequestBody OrderItemRequestDto itemDto,
-                                 Principal principal) {
-        return orderService.addOrderItem(orderId, itemDto, (Authentication) principal);
+                                 Authentication authentication) {
+        return orderService.addOrderItem(orderId, itemDto, authentication);
     }
 
     @PutMapping("/{orderId}/items/{itemId}")
     public OrderDto updateOrderItem(@PathVariable Long orderId,
                                     @PathVariable Long itemId,
                                     @Valid @RequestBody OrderItemRequestDto itemDto,
-                                    Principal principal) {
-        return orderService.updateOrderItem(orderId, itemId, itemDto, (Authentication) principal);
+                                    Authentication authentication) {
+        return orderService.updateOrderItem(orderId, itemId, itemDto, authentication);
     }
 
     @DeleteMapping("/{orderId}/items/{itemId}")
     public OrderDto deleteOrderItem(@PathVariable Long orderId,
                                     @PathVariable Long itemId,
-                                    Principal principal) {
-        return orderService.deleteOrderItem(orderId, itemId, (Authentication) principal);
+                                    Authentication authentication) {
+        return orderService.deleteOrderItem(orderId, itemId, authentication);
     }
 }

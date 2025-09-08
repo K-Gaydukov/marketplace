@@ -58,8 +58,9 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public Optional<CategoryDto> getCategory(Long id) {
-
-        return categoryRepository.findById(id).map(categoryMapper::toDto);
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Category with id " + id + " not found"));
+        return Optional.ofNullable(categoryMapper.toDto(category));
     }
 
     public CategoryDto updateCategory(Long id, CategoryDto dto) {
@@ -112,7 +113,9 @@ public class CatalogService {
 
     @Transactional(readOnly = true)
     public Optional<ProductDto> getProduct(Long id) {
-        return productRepository.findById(id).map(productMapper::toDto);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Product with id " + id + " not found"));
+        return Optional.ofNullable(productMapper.toDto(product));
     }
 
     public ProductDto updateProduct(Long id, ProductDto dto) {

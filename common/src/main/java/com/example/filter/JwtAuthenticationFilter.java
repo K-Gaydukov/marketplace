@@ -1,6 +1,7 @@
 package com.example.filter;
 
 import com.example.exception.JwtValidationException;
+import com.example.security.UserPrincipal;
 import com.example.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -8,13 +9,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -29,25 +28,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         // Шаг 1: Извлекаем токен из заголовка
-        String token = request.getHeader("Authorization");
-        if (token != null && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+        String authHeaders = request.getHeader("Authorization");
+        if (authHeaders != null && authHeaders.startsWith("Bearer ")) {
+            String token = authHeaders.substring(7);
             try {
-                // Шаг 2: Проверяем токен
+                // Проверка токена
                 Claims claims = jwtUtil.validateToken(token);
+                // Извлечение claims
+                String username = claims.getSubject();
+                Long userId = claims.get("uid", Long.class);
+                String fullName = claims.get("fio", String.class);
+                String role = claims.get("role", String.class);
 
-                // Шаг 3: Создаём UserDetails из claims
-                UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                        claims.getSubject(),  // sub (username)
-                        "",  // Пароль не нужен
-                        List.of(new SimpleGrantedAuthority(claims.get("role", String.class))));  // Роль
-
-                // Шаг 4: Устанавливаем аутентификацию
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    UserPrincipal userPrincipal = new UserPrincipal(userId, username, fullName, role, token);
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                            userPrincipal,
+                            null,
+                            userPrincipal.getAuthorities());
+                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(auth);
+                }
             } catch (JwtValidationException e) {
                 throw e;  // Пробрасываем в GlobalExceptionHandler
             }

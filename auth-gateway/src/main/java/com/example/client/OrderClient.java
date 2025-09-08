@@ -4,6 +4,7 @@ import com.example.dto.PageDto;
 import com.example.dto.order.*;
 import com.example.exception.NotFoundException;
 import com.example.exception.ValidationException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -15,6 +16,8 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -22,11 +25,21 @@ import java.util.Optional;
 public class OrderClient {
     private final RestTemplate restTemplate;
     private final String orderUrl;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public OrderClient(RestTemplate restTemplate,
                        @Value("${order.url}") String orderUrl) {
         this.restTemplate = restTemplate;
         this.orderUrl = orderUrl;
+    }
+
+    private String extractMessage(String body) {
+        try {
+            Map<String, Object> jsonMap = objectMapper.readValue(body, Map.class);
+            return (String) jsonMap.getOrDefault("message", body);
+        } catch (IOException e) {
+            return body;
+        }
     }
 
     public PageDto<OrderSummaryDto> getOrders(String token, int page, int size, String status, Long userId) {
@@ -47,9 +60,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Orders not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Invalid request parameters");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order service error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -57,14 +70,16 @@ public class OrderClient {
     public OrderDto createOrder(String token, OrderRequestDto dto) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
-        HttpEntity<OrderRequestDto> entity = new HttpEntity<>(headers);
+        HttpEntity<OrderRequestDto> entity = new HttpEntity<>(dto, headers);
         try {
             return restTemplate.postForObject(orderUrl + "/orders", entity, OrderDto.class);
         } catch (HttpClientErrorException e) {
-            if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Invalid order data");
+            if (e.getStatusCode().value() == 404) {
+                throw new NotFoundException("Order creation failed");
+            } else if (e.getStatusCode().value() == 422) {
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order creation error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -80,9 +95,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Access denied or invalid order");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order service error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -98,9 +113,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Invalid update or order not in NEW status");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order update error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -115,9 +130,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Cannot delete order");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order deletion error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -133,9 +148,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Invalid status update");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order status update error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -150,9 +165,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order or product not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Invalid item or order not in NEW status");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order item creation error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -169,9 +184,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order or item not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Invalid item update or order not in NEW status");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order item update error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }
@@ -188,9 +203,9 @@ public class OrderClient {
             if (e.getStatusCode().value() == 404) {
                 throw new NotFoundException("Order or item not found");
             } else if (e.getStatusCode().value() == 422) {
-                throw new ValidationException("Cannot delete item");
+                throw new ValidationException(extractMessage(e.getResponseBodyAsString()));
             } else {
-                throw new RuntimeException("Order item deletion error: " + e.getMessage());
+                throw new RuntimeException(extractMessage(e.getResponseBodyAsString()));
             }
         }
     }

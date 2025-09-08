@@ -1,6 +1,7 @@
 package com.example.exception;
 
 import com.example.dto.ErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,10 +11,14 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @ExceptionHandler(JwtValidationException.class)
     public ResponseEntity<ErrorResponse> handleJwtValidationException(JwtValidationException e,
                                                                       HttpServletRequest request) {
@@ -50,6 +55,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e,
                                                                HttpServletRequest request) {
+        String message = extractMessage(e.getResponseBodyAsString());
         String code = switch (e.getStatusCode().value()) {
             case 404 -> "NOT_FOUND";
             case 422 -> "UNPROCESSABLE_ENTITY";
@@ -57,7 +63,7 @@ public class GlobalExceptionHandler {
         };
         return new ResponseEntity<>(new ErrorResponse(
                 code,
-                e.getMessage(),
+                message,
                 request.getRequestURI(),
                 (HttpStatus) e.getStatusCode()), e.getStatusCode());
     }
@@ -80,5 +86,14 @@ public class GlobalExceptionHandler {
                 e.getMessage(),
                 request.getRequestURI(),
                 HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+    }
+
+    private String extractMessage(String body) {
+        try {
+            Map<String, Object> jsonMap = objectMapper.readValue(body, Map.class);
+            return (String) jsonMap.getOrDefault("message", body);
+        } catch (IOException ex) {
+            return body;
+        }
     }
 }

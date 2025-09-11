@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Locale;
 
 @Service
 @Transactional
@@ -42,7 +42,7 @@ public class CatalogService {
         Specification<Category> spec = Specification.where(null);
         if (name != null) {
             spec = spec.and((root, query, cb) ->
-                    cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+                    cb.like(cb.lower(root.get("name")), "%" + name.toLowerCase(Locale.forLanguageTag("ru")) + "%"));
         }
         Page<Category> page = categoryRepository.findAll(spec, pageable);
         return new PageDto<>(page.map(categoryMapper::toDto));
@@ -57,10 +57,10 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<CategoryDto> getCategory(Long id) {
-        Category category = categoryRepository.findById(id)
+    public CategoryDto getCategory(Long id) {  // Убери Optional, брось exception
+        return categoryRepository.findById(id)
+                .map(categoryMapper::toDto)
                 .orElseThrow(() -> new NotFoundException("Category with id " + id + " not found"));
-        return Optional.ofNullable(categoryMapper.toDto(category));
     }
 
     public CategoryDto updateCategory(Long id, CategoryDto dto) {
@@ -108,14 +108,17 @@ public class CatalogService {
                 .orElseThrow(() -> new NotFoundException("Category with id " + dto.getCategoryId() + " not found")));
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
+        if (dto.getIsActive() == null) {
+            product.setActive(true);
+        }
         return productMapper.toDto(productRepository.save(product));
     }
 
     @Transactional(readOnly = true)
-    public Optional<ProductDto> getProduct(Long id) {
-        Product product = productRepository.findById(id)
+    public ProductDto getProduct(Long id) {
+        return productRepository.findById(id)
+                .map(productMapper::toDto)
                 .orElseThrow(() -> new NotFoundException("Product with id " + id + " not found"));
-        return Optional.ofNullable(productMapper.toDto(product));
     }
 
     public ProductDto updateProduct(Long id, ProductDto dto) {

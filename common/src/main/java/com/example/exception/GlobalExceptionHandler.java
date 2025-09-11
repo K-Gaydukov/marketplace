@@ -3,6 +3,8 @@ package com.example.exception;
 import com.example.dto.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.ObjectError;
@@ -49,8 +51,7 @@ public class GlobalExceptionHandler {
                 "VALIDATION_ERROR",
                 message,
                 request.getRequestURI(),
-                HttpStatus.BAD_REQUEST
-                ), HttpStatus.BAD_REQUEST);
+                HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e,
@@ -59,6 +60,7 @@ public class GlobalExceptionHandler {
         String code = switch (e.getStatusCode().value()) {
             case 404 -> "NOT_FOUND";
             case 422 -> "UNPROCESSABLE_ENTITY";
+            case 400 -> "VALIDATION_ERROR";
             default -> "PROXY_ERROR";
         };
         return new ResponseEntity<>(new ErrorResponse(
@@ -73,7 +75,7 @@ public class GlobalExceptionHandler {
                                                                  HttpServletRequest request) {
         return new ResponseEntity<>(new ErrorResponse(
                 "NOT_FOUND",
-                e.getMessage(),
+                e.getMessage() != null ? e.getMessage() : "Resource not found",
                 request.getRequestURI(),
                 HttpStatus.NOT_FOUND), HttpStatus.NOT_FOUND);
     }
@@ -84,6 +86,25 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ErrorResponse(
                 "VALIDATION_ERROR",
                 e.getMessage(),
+                request.getRequestURI(),
+                HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException e, HttpServletRequest request) {
+        return new ResponseEntity<>(new ErrorResponse(
+                "VALIDATION_ERROR",
+                e.getMessage(),
+                request.getRequestURI(),
+                HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException e, HttpServletRequest request) {
+        String message = "Data integrity violation: " + e.getMostSpecificCause().getMessage();
+        return new ResponseEntity<>(new ErrorResponse(
+                "VALIDATION_ERROR",
+                message,
                 request.getRequestURI(),
                 HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
     }

@@ -97,7 +97,11 @@
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
                 <configuration>
+                    <changeLogFile>db/changelog/db.changelog-master.yml</changeLogFile>
                     <url>jdbc:postgresql://localhost:5434/order</url>
+                    <username>postgres</username>
+                    <password>postgres</password>
+                    <rollbackCount>4</rollbackCount>
                 </configuration>
             </plugin>
         </plugins>

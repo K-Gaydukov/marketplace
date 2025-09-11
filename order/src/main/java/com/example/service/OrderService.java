@@ -54,7 +54,7 @@ public class OrderService {
         if (isAdmin) {
             if (userId != null) {
                 orders = status != null
-                        ? orderRepository.findByUserIdAndStatus(userId, OrderStatus.valueOf(status), pageable)
+                        ? orderRepository.findByUserIdAndStatus(userId, OrderStatus.valueOf(status.toUpperCase()), pageable)
                         : orderRepository.findByUserId(userId, pageable);
             } else {
                 orders = status != null

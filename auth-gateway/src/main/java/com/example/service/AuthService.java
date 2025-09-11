@@ -35,6 +35,9 @@ public class AuthService {
     }
 
     public User register(User user) {
+        if (userRepository.existsByUsername(user.getUsername())) {
+            throw new ValidationException("Username already exists");
+        }
         user.setPasswordHash(encoder.encode(user.getPasswordHash()));  // Хешируем пароль
         user.setRole(Role.ROLE_USER);
         user.setActive(true);
@@ -98,9 +101,10 @@ public class AuthService {
 
     public void logout(String refreshToken) {
         RefreshToken rt = refreshTokenRepository.findByToken(refreshToken);
-        if (rt != null) {
-            rt.setRevoked(true);
-            refreshTokenRepository.save(rt);
+        if (rt == null) {
+            throw new ValidationException("Invalid refresh token");
         }
+        rt.setRevoked(true);
+        refreshTokenRepository.save(rt);
     }
 }

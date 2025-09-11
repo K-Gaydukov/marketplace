@@ -5,6 +5,7 @@ import com.example.dto.catalog.CategoryDto;
 import com.example.dto.PageDto;
 import com.example.dto.catalog.ProductDto;
 import com.example.service.CatalogService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,19 +27,17 @@ public class CatalogController {
     }
 
     @PostMapping("/categories")
-    public CategoryDto createCategory(@RequestBody CategoryDto dto) {
+    public CategoryDto createCategory(@Valid @RequestBody CategoryDto dto) {
         return catalogService.createCategory(dto);
     }
 
     @GetMapping("/categories/{id}")
-    public ResponseEntity<CategoryDto> getCategory(@PathVariable Long id) {
-        return catalogService.getCategory(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public CategoryDto getCategory(@PathVariable Long id) {
+        return catalogService.getCategory(id);
     }
 
     @PutMapping("/categories/{id}")
-    public CategoryDto updateCategory(@PathVariable Long id, @RequestBody CategoryDto dto) {
+    public CategoryDto updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryDto dto) {
         return catalogService.updateCategory(id, dto);
     }
 
@@ -50,28 +49,26 @@ public class CatalogController {
 
     @GetMapping("/products")
     public PageDto<ProductDto> getProducts(Pageable pageable,
-                                        @RequestParam(required = false) Long categoryId,
-                                        @RequestParam(required = false) String q,
-                                        @RequestParam(required = false) BigDecimal minPrice,
-                                        @RequestParam(required = false) BigDecimal maxPrice,
-                                        @RequestParam(required = false) Boolean onlyActive) {
+                                           @RequestParam(required = false) Long categoryId,
+                                           @RequestParam(required = false) String q,
+                                           @RequestParam(required = false) BigDecimal minPrice,
+                                           @RequestParam(required = false) BigDecimal maxPrice,
+                                           @RequestParam(required = false) Boolean onlyActive) {
         return catalogService.getProducts(pageable, categoryId, q, minPrice, maxPrice, onlyActive);
     }
 
     @PostMapping("/products")
-    public ProductDto createProduct(@RequestBody ProductDto dto) {
+    public ProductDto createProduct(@Valid @RequestBody ProductDto dto) {
         return catalogService.createProduct(dto);
     }
 
     @GetMapping("/products/{id}")
-    public ResponseEntity<ProductDto> getProduct(@PathVariable Long id) {
-        return catalogService.getProduct(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ProductDto getProduct(@PathVariable Long id) {
+        return catalogService.getProduct(id);
     }
 
     @PutMapping("/products/{id}")
-    public ProductDto updateProduct(@PathVariable Long id, @RequestBody ProductDto dto) {
+    public ProductDto updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDto dto) {
         return catalogService.updateProduct(id, dto);
     }
 

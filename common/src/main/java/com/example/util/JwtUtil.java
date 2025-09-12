@@ -32,6 +32,17 @@ public class JwtUtil {
         this.publicKey = publicKey;
     }
 
+    public String generateServiceToken() {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .subject("order-service")
+                .claim("role", "ROLE_SERVICE")
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(now.plusMillis(86400000))) // 1 day
+                .signWith(privateKey, Jwts.SIG.RS256)
+                .compact();
+    }
+
     // Генерация токена с claims(поля)
     public String generateAccessToken(String sub, Long uid, String fio, String role) {
         Instant now = Instant.now();

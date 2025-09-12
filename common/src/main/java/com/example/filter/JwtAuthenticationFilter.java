@@ -14,6 +14,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -36,18 +37,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.validateToken(token);
                 // Извлечение claims
                 String username = claims.getSubject();
-                Long userId = claims.get("uid", Long.class);
-                String fullName = claims.get("fio", String.class);
                 String role = claims.get("role", String.class);
-
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserPrincipal userPrincipal = new UserPrincipal(userId, username, fullName, role, token);
+                if (username != null && username.equals("order-service")) {
+                    // Сервисный токен
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                            userPrincipal,
+                            username,
                             null,
-                            userPrincipal.getAuthorities());
+                            List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority(role)));
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(auth);
+                } else {
+                    // Пользовательский токен
+                    Long userId = claims.get("uid", Long.class);
+                    String fullName = claims.get("fio", String.class);
+
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserPrincipal userPrincipal = new UserPrincipal(userId, username, fullName, role, token);
+                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                                userPrincipal,
+                                null,
+                                userPrincipal.getAuthorities());
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
                 }
             } catch (JwtValidationException e) {
                 throw e;  // Пробрасываем в GlobalExceptionHandler

@@ -86,7 +86,7 @@ public class OrderService {
         order = orderRepository.save(order);
         for (OrderItemRequestDto itemDto : dto.getItems()) {
             ProductDto product = catalogClient.getProduct(itemDto.getProductId(), token);
-            if (!product.getIsActive()) {
+            if (!product.isActive()) {
                 throw new ValidationException("Product " + itemDto.getProductId() + " is inactive");
             }
             if (product.getStock() < itemDto.getQuantity()) {
@@ -146,7 +146,7 @@ public class OrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
         for (OrderItemRequestDto itemDto : dto.getItems()) {
             ProductDto product = catalogClient.getProduct(itemDto.getProductId(), token);
-            if (!product.getIsActive()) {
+            if (!product.isActive()) {
                 throw new ValidationException("Product " + itemDto.getProductId() + " is inactive");
             }
             if (product.getStock() < itemDto.getQuantity()) {
@@ -227,7 +227,7 @@ public class OrderService {
             throw new ValidationException("Can only add items to orders with status NEW");
         }
         ProductDto product = catalogClient.getProduct(itemDto.getProductId(), token);
-        if (!product.getIsActive()) {
+        if (!product.isActive()) {
             throw new ValidationException("Product " + itemDto.getProductId() + " is inactive");
         }
         if (product.getStock() < itemDto.getQuantity()) {
@@ -270,7 +270,7 @@ public class OrderService {
             throw new ValidationException("Item does not belong to order");
         }
         ProductDto product = catalogClient.getProduct(item.getProductId(), token);
-        if (!product.getIsActive()) {
+        if (!product.isActive()) {
             throw new ValidationException("Product " + item.getProductId() + " is inactive");
         }
         // Откат старого запаса

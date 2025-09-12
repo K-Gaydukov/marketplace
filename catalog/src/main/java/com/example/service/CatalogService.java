@@ -108,9 +108,6 @@ public class CatalogService {
                 .orElseThrow(() -> new NotFoundException("Category with id " + dto.getCategoryId() + " not found")));
         product.setCreatedAt(LocalDateTime.now());
         product.setUpdatedAt(LocalDateTime.now());
-        if (dto.getIsActive() == null) {
-            product.setActive(true);
-        }
         return productMapper.toDto(productRepository.save(product));
     }
 
@@ -139,9 +136,7 @@ public class CatalogService {
         if (dto.getStock() != null) {
             product.setStock(dto.getStock());
         }
-        if (dto.getIsActive() != null) {
-            product.setActive(dto.getIsActive());
-        }
+        product.setActive(dto.isActive());
         if (dto.getCategoryId() != null) {
             product.setCategory(categoryRepository.findById(dto.getCategoryId())
                     .orElseThrow(() -> new NotFoundException("Category with id " + dto.getCategoryId() + " not found")));

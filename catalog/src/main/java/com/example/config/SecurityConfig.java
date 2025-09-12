@@ -3,6 +3,7 @@ package com.example.config;
 import com.example.filter.JwtAuthenticationFilter;
 import com.example.util.JwtUtil;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -31,7 +32,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/categories/**", "/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/categories/**", "/products/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/categories/**", "/products/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PATCH,  "/products/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH,  "/products/**").hasAnyRole("ADMIN", "SERVICE")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

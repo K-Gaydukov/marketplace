@@ -3,6 +3,7 @@ package com.example.client;
 import com.example.dto.catalog.ProductDto;
 import com.example.exception.NotFoundException;
 import com.example.exception.ValidationException;
+import com.example.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -17,10 +18,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class CatalogClient {
     private final RestTemplate restTemplate;
     private final String catalogUrl;
+    private final JwtUtil jwtUtil;
 
-    public CatalogClient(RestTemplate restTemplate, @Value("${catalog.url}") String catalogUrl) {
+    public CatalogClient(RestTemplate restTemplate,
+                         @Value("${catalog.url}") String catalogUrl,
+                         JwtUtil jwtUtil) {
         this.restTemplate = restTemplate;
         this.catalogUrl = catalogUrl;
+        this.jwtUtil = jwtUtil;
     }
 
     public ProductDto getProduct(Long id, String token) {
@@ -43,7 +48,7 @@ public class CatalogClient {
 
     public ProductDto updateStock(Long id, Integer delta, String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + token);
+        headers.set("Authorization", "Bearer " + jwtUtil.generateServiceToken());
         HttpEntity<?> entity = new HttpEntity<>(headers);
         String url = UriComponentsBuilder.fromHttpUrl(catalogUrl + "/products/" + id + "/stock")
                 .queryParam("delta", delta)

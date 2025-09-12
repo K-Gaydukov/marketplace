@@ -27,9 +27,9 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/auth/logout")
-    public ResponseEntity<String> logout(@RequestBody Map<String, String> body) {
+    public ResponseEntity<Map<String, String>> logout(@RequestBody Map<String, String> body) {
         authService.logout(body.get("refreshToken"));
-        return ResponseEntity.ok("Logged out");
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
     @PutMapping("/auth/me")
@@ -57,9 +57,9 @@ public class AuthController {
     }
 
     @PostMapping("/auth/register")
-    public ResponseEntity<String> register(@RequestBody User user) {
+    public ResponseEntity<Map<String, String>> register(@RequestBody User user) {
         authService.register(user);
-        return ResponseEntity.ok("Registered successfully");
+        return ResponseEntity.ok(Map.of("message", "Registered successfully"));
     }
 
     @PostMapping("/auth/login")

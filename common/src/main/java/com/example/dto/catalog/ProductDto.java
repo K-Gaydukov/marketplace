@@ -13,25 +13,25 @@ import java.time.LocalDateTime;
 public class ProductDto {
     private Long id;
 
-    @NotBlank(message = "SKU is required")
+    @NotBlank(message = "SKU cannot be empty")
     private String sku;
 
-    @NotBlank(message = "Name is required")
+    @NotBlank(message = "Name cannot be empty")
     private String name;
 
     private String description;
 
-    @NotNull(message = "Price is required")
+    @NotBlank(message = "Price cannot be empty")
     @Positive(message = "Price must be positive")
     private BigDecimal price;
 
-    @NotNull(message = "Stock is required")
+    @NotNull(message = "Stock cannot be empty")
     @Min(value = 0, message = "Stock cannot be negative")
     private Integer stock;
 
-    private Boolean isActive;
+    private boolean isActive;
 
-    @NotNull(message = "Category ID is required")
+    @NotNull(message = "Category ID cannot be empty")
     private Long categoryId;
 
     private LocalDateTime createdAt;

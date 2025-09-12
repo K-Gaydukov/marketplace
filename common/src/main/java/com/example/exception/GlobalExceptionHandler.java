@@ -56,18 +56,40 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e,
                                                                HttpServletRequest request) {
-        String message = extractMessage(e.getResponseBodyAsString());
-        String code = switch (e.getStatusCode().value()) {
-            case 404 -> "NOT_FOUND";
-            case 422 -> "UNPROCESSABLE_ENTITY";
-            case 400 -> "VALIDATION_ERROR";
-            default -> "PROXY_ERROR";
+        String code;
+        HttpStatus status;
+        String message = extractMessage(e.getResponseBodyAsString(), e.getMessage());
+        status = switch (e.getStatusCode().value()) {
+            case 404 -> {
+                code = "NOT_FOUND";
+                yield HttpStatus.NOT_FOUND;
+            }
+            case 422 -> {
+                code = "UNPROCESSABLE_ENTITY";
+                yield HttpStatus.UNPROCESSABLE_ENTITY;
+            }
+            case 401 -> {
+                code = "UNAUTHORIZED";
+                yield HttpStatus.UNAUTHORIZED;
+            }
+            case 403 -> {
+                code = "FORBIDDEN";
+                yield HttpStatus.FORBIDDEN;
+            }
+            case 400 -> {
+                code = "VALIDATION_ERROR";
+                yield HttpStatus.BAD_REQUEST;
+            }
+            default -> {
+                code = "PROXY_ERROR";
+                yield HttpStatus.INTERNAL_SERVER_ERROR;
+            }
         };
         return new ResponseEntity<>(new ErrorResponse(
                 code,
                 message,
                 request.getRequestURI(),
-                (HttpStatus) e.getStatusCode()), e.getStatusCode());
+                status), status);
     }
 
     @ExceptionHandler(NotFoundException.class)
@@ -84,10 +106,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationException(ValidationException e,
                                                                    HttpServletRequest request) {
         return new ResponseEntity<>(new ErrorResponse(
-                "VALIDATION_ERROR",
+                "UNPROCESSABLE_ENTITY",
                 e.getMessage(),
                 request.getRequestURI(),
-                HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+                HttpStatus.UNPROCESSABLE_ENTITY), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -109,12 +131,13 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
     }
 
-    private String extractMessage(String body) {
+    private String extractMessage(String body, String fallback) {
         try {
             Map<String, Object> jsonMap = objectMapper.readValue(body, Map.class);
-            return (String) jsonMap.getOrDefault("message", body);
+            String message = (String) jsonMap.get("message");
+            return message != null ? message : fallback;
         } catch (IOException ex) {
-            return body;
+            return fallback;
         }
     }
 }

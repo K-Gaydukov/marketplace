@@ -27,8 +27,8 @@ public class CatalogController {
     }
 
     @PostMapping("/categories")
-    public CategoryDto createCategory(@Valid @RequestBody CategoryDto dto) {
-        return catalogService.createCategory(dto);
+    public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody CategoryDto dto) {
+        return ResponseEntity.status(201).body(catalogService.createCategory(dto));
     }
 
     @GetMapping("/categories/{id}")
@@ -58,8 +58,8 @@ public class CatalogController {
     }
 
     @PostMapping("/products")
-    public ProductDto createProduct(@Valid @RequestBody ProductDto dto) {
-        return catalogService.createProduct(dto);
+    public ResponseEntity<ProductDto> createProduct(@Valid @RequestBody ProductDto dto) {
+        return ResponseEntity.status(201).body(catalogService.createProduct(dto));
     }
 
     @GetMapping("/products/{id}")

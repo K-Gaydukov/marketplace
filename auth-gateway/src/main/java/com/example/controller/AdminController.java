@@ -3,7 +3,9 @@ package com.example.controller;
 import com.example.dto.UserCreateDto;
 import com.example.dto.UserDto;
 import com.example.dto.UserUpdateDto;
+import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.exception.NotFoundException;
 import com.example.mapper.UserMapper;
 import com.example.repository.UserRepository;
 import com.example.service.AuthService;
@@ -16,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -38,6 +41,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserDto createUser(@Valid @RequestBody UserCreateDto dto) {
         User user = userMapper.toEntity(dto);
+        user.setRole(dto.getRole() != null ? Role.valueOf(dto.getRole()) : Role.ROLE_USER);  // Default if null
         return userMapper.toDto(authService.register(user));
     }
 
@@ -45,14 +49,14 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserDto getUser(@PathVariable("id") Long id) {
         return userMapper.toDto(userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id)));
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + id)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public UserDto updateUser(@PathVariable("id") Long id, @Valid @RequestBody UserUpdateDto dto) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
         userMapper.updateFromDto(dto, user);
         user.setUpdatedAt(LocalDateTime.now());
         return userMapper.toDto(userRepository.save(user));
@@ -60,11 +64,11 @@ public class AdminController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> deleteUser(@PathVariable("id") Long id) {
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable("id") Long id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new NotFoundException("User not found with id: " + id));
         user.setActive(false);
         userRepository.save(user);
-        return  ResponseEntity.ok("User deactivated");
+        return  ResponseEntity.ok(Map.of("message", "User deactivated"));
     }
 }

@@ -11,7 +11,7 @@ spring:
 server:
   port: 8081
 jwt:
-  expiration: 900000  # 15 min
+  expiration: 3600000  # 1 hour
   issuer: catalog
 logging:
   level:
@@ -21,3 +21,5 @@ logging:
     com.fasterxml.jackson: DEBUG
     org.springframework.web.client: DEBUG
     com.example: DEBUG
+service:
+ token: ee2cd09215c4d84bafa7a31d11633ce07945cf04c1e9c30d91ca31ceb18936ad

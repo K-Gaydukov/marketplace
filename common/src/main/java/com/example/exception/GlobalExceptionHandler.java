@@ -7,6 +7,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -48,10 +49,10 @@ public class GlobalExceptionHandler {
                 .map(ObjectError::getDefaultMessage)
                 .collect(Collectors.joining(", "));
         return new ResponseEntity<>(new ErrorResponse(
-                "VALIDATION_ERROR",
+                "UNPROCESSABLE_ENTITY",
                 message,
                 request.getRequestURI(),
-                HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+                HttpStatus.UNPROCESSABLE_ENTITY), HttpStatus.UNPROCESSABLE_ENTITY);
     }
     @ExceptionHandler(HttpClientErrorException.class)
     public ResponseEntity<ErrorResponse> handleHttpClientError(HttpClientErrorException e,
@@ -129,6 +130,16 @@ public class GlobalExceptionHandler {
                 message,
                 request.getRequestURI(),
                 HttpStatus.BAD_REQUEST), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException e,
+                                                                     HttpServletRequest request) {
+        return new ResponseEntity<>(new ErrorResponse(
+                "FORBIDDEN",
+                e.getMessage(),
+                request.getRequestURI(),
+                HttpStatus.FORBIDDEN), HttpStatus.FORBIDDEN);
     }
 
     private String extractMessage(String body, String fallback) {

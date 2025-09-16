@@ -21,11 +21,9 @@ public class ProductDto {
 
     private String description;
 
-    @NotBlank(message = "Price cannot be empty")
     @Positive(message = "Price must be positive")
     private BigDecimal price;
 
-    @NotNull(message = "Stock cannot be empty")
     @Min(value = 0, message = "Stock cannot be negative")
     private Integer stock;
 

@@ -66,7 +66,7 @@ public class CatalogClient {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
         HttpEntity<?> entity = new HttpEntity<>(headers);
-        restTemplate.exchange(catalogUrl + "/categories/" + id, HttpMethod.DELETE, entity, Value.class);
+        restTemplate.exchange(catalogUrl + "/categories/" + id, HttpMethod.DELETE, entity, Void.class);
     }
 
     public PageDto<ProductDto> getProducts(String token,

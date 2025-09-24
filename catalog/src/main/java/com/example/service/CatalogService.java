@@ -57,7 +57,7 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
-    public CategoryDto getCategory(Long id) {  // Убери Optional, брось exception
+    public CategoryDto getCategory(Long id) {
         return categoryRepository.findById(id)
                 .map(categoryMapper::toDto)
                 .orElseThrow(() -> new NotFoundException("Category with id " + id + " not found"));

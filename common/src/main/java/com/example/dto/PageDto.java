@@ -26,14 +26,14 @@ public class PageDto<T> {
     public PageDto(Page<T> page) {
         this.content = page.getContent();
         this.pageable = new PageableDto(
-                page.getPageable().getPageNumber(),
-                page.getPageable().getPageSize(),
+                page.getPageable().isUnpaged() ? 0 : page.getPageable().getPageNumber(),
+                page.getPageable().isUnpaged() ? page.getContent().size() : page.getPageable().getPageSize(),
                 new SortDto(
                         page.getPageable().getSort().isUnsorted(),
                         page.getPageable().getSort().isSorted(),
                         page.getPageable().getSort().isEmpty()
                 ),
-                page.getPageable().getOffset(),
+                page.getPageable().isUnpaged() ? 0 : page.getPageable().getOffset(),
                 page.getPageable().isPaged(),
                 page.getPageable().isUnpaged()
         );

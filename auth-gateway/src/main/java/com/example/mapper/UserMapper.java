@@ -26,5 +26,4 @@ public interface UserMapper {
     @Mapping(target = "role", expression = "java(com.example.entity.Role.valueOf(dto.getRole()))")
     @Mapping(target = "passwordHash", source = "password")
     User toEntity(UserCreateDto dto);
-
 }

@@ -3,48 +3,53 @@ package com.example.repository;
 import com.example.entity.Category;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-public class CategoryRepositoryTest {
+@DataJpaTest(excludeAutoConfiguration = LiquibaseAutoConfiguration.class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@Import(com.example.ApplicationCatalog.class)
+class CategoryRepositoryTest {
+
     @Autowired
     private CategoryRepository categoryRepository;
 
     @Test
-    void findByName_success() {
-        // Проверяет: Поиск категории по имени
+    void findByName_shouldReturnCategory() {
         Category category = new Category();
-        category.setName("Test Category");
-        category.setDescription("Description");
+        category.setName("Test");
+        category.setDescription("Desc");
         category.setCreatedAt(LocalDateTime.now());
         category.setUpdatedAt(LocalDateTime.now());
         categoryRepository.save(category);
 
-        Category found = categoryRepository.findByName("Test Category");
+        Category found = categoryRepository.findByName("Test");
 
-        assertNotNull(found);
-        assertEquals("Test Category", found.getName());
+        assertThat(found).isNotNull();
+        assertThat(found.getName()).isEqualTo("Test");
+        assertThat(found.getDescription()).isEqualTo("Desc");
     }
 
     @Test
-    void findAll_withPagination() {
-        // Проверяет: Получение списка категорий с пагинацией
+    void findAll_withSpecification_shouldReturnPage() {
         Category category = new Category();
-        category.setName("Test Category");
+        category.setName("Test");
         category.setCreatedAt(LocalDateTime.now());
         category.setUpdatedAt(LocalDateTime.now());
         categoryRepository.save(category);
 
-        Page<Category> page = categoryRepository.findAll(PageRequest.of(0, 10));
+        var spec = (Specification<Category>) (root, query, cb) -> cb.equal(root.get("name"), "Test");
+        var pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+        var page = categoryRepository.findAll(spec, pageable);
 
-        assertEquals(1, page.getContent().size());
-        assertEquals("Test Category", page.getContent().get(0).getName());
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getName()).isEqualTo("Test");
     }
 }

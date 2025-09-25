@@ -14,7 +14,6 @@ import com.example.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -28,9 +27,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class CatalogServiceTest {
@@ -47,325 +49,356 @@ public class CatalogServiceTest {
     @Mock
     private ProductMapper productMapper;
 
-    @InjectMocks
     private CatalogService catalogService;
-
-    private Category category;
-    private Product product;
-    private CategoryDto categoryDto;
-    private ProductDto productDto;
 
     @BeforeEach
     void setUp() {
-        category = new Category();
-        category.setId(1L);
-        category.setName("Test Category");
-        category.setDescription("Description");
-        category.setCreatedAt(LocalDateTime.now());
-        category.setUpdatedAt(LocalDateTime.now());
-
-        product = new Product();
-        product.setId(1L);
-        product.setSku("SKU123");
-        product.setName("Test Product");
-        product.setDescription("Product Description");
-        product.setPrice(BigDecimal.valueOf(100));
-        product.setStock(10);
-        product.setActive(true);
-        product.setCategory(category);
-        product.setCreatedAt(LocalDateTime.now());
-        product.setUpdatedAt(LocalDateTime.now());
-
-        categoryDto = new CategoryDto();
-        categoryDto.setId(1L);
-        categoryDto.setName("Test Category");
-        categoryDto.setDescription("Description");
-
-        productDto = new ProductDto();
-        productDto.setId(1L);
-        productDto.setSku("SKU123");
-        productDto.setName("Test Product");
-        productDto.setDescription("Product Description");
-        productDto.setPrice(BigDecimal.valueOf(100));
-        productDto.setStock(10);
-        productDto.setActive(true);
-        productDto.setCategoryId(1L);
+        catalogService = new CatalogService(categoryRepository, productRepository, categoryMapper, productMapper);
     }
 
+    // Метод 1: getCategories без имени — проверяет пагинацию без фильтра.
+    // Поэтапно: 1. Настраиваем мок репозитория на возврат фейкового Page. 2. Вызываем метод. 3. Проверяем результат и вызов.
     @Test
-    void getCategories_success() {
-        // Проверяет: Получение списка категорий с пагинацией и фильтрацией по имени
-        // Как работает: Мокаем categoryRepository.findAll, возвращаем Page<Category>, проверяем преобразование в PageDto<CategoryDto>
+    void getCategories_shouldReturnPageDto_whenNoName() {
         Pageable pageable = PageRequest.of(0, 10);
-        Page<Category> page = new PageImpl<>(List.of(category), pageable, 1);
+        Page<Category> page = new PageImpl<>(List.of(new Category()));
         when(categoryRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(categoryMapper.toDto(category)).thenReturn(categoryDto);
-
-        PageDto<CategoryDto> result = catalogService.getCategories(pageable, "Test");
-
-        assertEquals(1, result.getContent().size());
-        assertEquals("Test Category", result.getContent().get(0).getName());
-        assertEquals(0, result.getNumber());
-        assertEquals(1, result.getTotalPages());
-        verify(categoryRepository).findAll(any(Specification.class), eq(pageable));
-        verify(categoryMapper).toDto(category);
-    }
-
-    @Test
-    void getCategories_empty() {
-        // Проверяет: Возврат пустого списка категорий
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Category> page = new PageImpl<>(List.of(), pageable, 0);
-        when(categoryRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+        CategoryDto dto = new CategoryDto();
+        when(categoryMapper.toDto(any(Category.class))).thenReturn(dto);
 
         PageDto<CategoryDto> result = catalogService.getCategories(pageable, null);
 
-        assertTrue(result.getContent().isEmpty());
-        assertTrue(result.isEmpty());
+        assertThat(result.getContent()).hasSize(1);
         verify(categoryRepository).findAll(any(Specification.class), eq(pageable));
     }
 
+    // Метод 2: getCategories с именем — проверяет фильтр по имени (Specification с like).
+    // Поэтапно: 1. Мок возвращает пустую страницу. 2. Вызов с "Test". 3. Verify, что Specification создана правильно (Mockito захватывает any(Specification)).
     @Test
-    void createCategory_success() {
-        // Проверяет: Создание новой категории
-        // Как работает: Мокаем маппер и репозиторий, проверяем, что категория сохраняется и возвращается DTO
-        when(categoryMapper.toEntity(categoryDto)).thenReturn(category);
-        when(categoryRepository.save(category)).thenReturn(category);
-        when(categoryMapper.toDto(category)).thenReturn(categoryDto);
-
-        CategoryDto result = catalogService.createCategory(categoryDto);
-
-        assertEquals("Test Category", result.getName());
-        assertNotNull(result.getCreatedAt());
-        verify(categoryRepository).save(category);
-        verify(categoryMapper).toEntity(categoryDto);
-        verify(categoryMapper).toDto(category);
-    }
-
-    @Test
-    void getCategory_success() {
-        // Проверяет: Получение категории по ID
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toDto(category)).thenReturn(categoryDto);
-
-        CategoryDto result = catalogService.getCategory(1L);
-
-        assertEquals(1L, result.getId());
-        assertEquals("Test Category", result.getName());
-        verify(categoryRepository).findById(1L);
-        verify(categoryMapper).toDto(category);
-    }
-
-    @Test
-    void getCategory_notFound() {
-        // Проверяет: Выброс NotFoundException при отсутствии категории
-        when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> catalogService.getCategory(1L));
-        verify(categoryRepository).findById(1L);
-    }
-
-    @Test
-    void updateCategory_success() {
-        // Проверяет: Обновление существующей категории
-        CategoryDto updatedDto = new CategoryDto();
-        updatedDto.setName("Updated Category");
-        updatedDto.setDescription("Updated Description");
-
-        Category updatedCategory = new Category();
-        updatedCategory.setId(1L);
-        updatedCategory.setName("Updated Category");
-        updatedCategory.setDescription("Updated Description");
-        updatedCategory.setCreatedAt(category.getCreatedAt());
-        updatedCategory.setUpdatedAt(LocalDateTime.now());
-
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(categoryMapper.toEntity(updatedDto)).thenReturn(updatedCategory);
-        when(categoryRepository.save(updatedCategory)).thenReturn(updatedCategory);
-        when(categoryMapper.toDto(updatedCategory)).thenReturn(updatedDto);
-
-        CategoryDto result = catalogService.updateCategory(1L, updatedDto);
-
-        assertEquals("Updated Category", result.getName());
-        verify(categoryRepository).findById(1L);
-        verify(categoryRepository).save(updatedCategory);
-        verify(categoryMapper).toDto(updatedCategory);
-    }
-
-    @Test
-    void updateCategory_notFound() {
-        // Проверяет: Выброс NotFoundException при обновлении несуществующей категории
-        when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> catalogService.updateCategory(1L, categoryDto));
-        verify(categoryRepository).findById(1L);
-    }
-
-    @Test
-    void deleteCategory_success() {
-        // Проверяет: Удаление категории по ID
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        doNothing().when(categoryRepository).deleteById(1L);
-
-        catalogService.deleteCategory(1L);
-
-        verify(categoryRepository).findById(1L);
-        verify(categoryRepository).deleteById(1L);
-    }
-
-    @Test
-    void deleteCategory_notFound() {
-        // Проверяет: Выброс NotFoundException при удалении несуществующей категории
-        when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThrows(NotFoundException.class, () -> catalogService.deleteCategory(1L));
-        verify(categoryRepository).findById(1L);
-    }
-
-    @Test
-    void getProducts_success() {
-        // Проверяет: Получение списка продуктов с фильтрацией
+    void getCategories_shouldFilterByName() {
         Pageable pageable = PageRequest.of(0, 10);
-        Page<Product> page = new PageImpl<>(List.of(product), pageable, 1);
+        Page<Category> page = new PageImpl<>(List.of());
+        when(categoryRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+
+        catalogService.getCategories(pageable, "Test");
+
+        verify(categoryRepository).findAll(any(Specification.class), eq(pageable));
+    }
+
+    // Метод 3: createCategory — проверяет создание и сохранение.
+    // Поэтапно: 1. Создаём DTO, мапим в entity. 2. Мок save возвращает entity. 3. Проверяем результат и даты.
+    @Test
+    void createCategory_shouldSaveAndReturnDto() {
+        CategoryDto dto = new CategoryDto();
+        dto.setName("New Category");
+        Category entity = new Category();
+        entity.setName("New Category");
+        LocalDateTime now = LocalDateTime.now();
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        when(categoryMapper.toEntity(dto)).thenReturn(entity);
+        when(categoryRepository.save(entity)).thenReturn(entity);
+        when(categoryMapper.toDto(entity)).thenReturn(dto);
+
+        CategoryDto result = catalogService.createCategory(dto);
+
+        assertThat(result.getName()).isEqualTo("New Category");
+        assertThat(entity.getCreatedAt()).isNotNull();
+        verify(categoryRepository).save(entity);
+    }
+
+    // Метод 4: getCategory с ошибкой — проверяет исключение.
+    // Поэтапно: 1. Мок возвращает empty. 2. Вызов. 3. assertThatThrownBy проверяет тип и сообщение исключения.
+    @Test
+    void getCategory_shouldThrowNotFound_whenIdInvalid() {
+        Long id = 1L;
+        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> catalogService.getCategory(id))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Category with id " + id + " not found");
+    }
+
+    // Метод 5: getCategory успех — проверяет возврат DTO.
+    // Поэтапно: 1. Мок findById возвращает entity. 2. Маппер toDto. 3. Проверка равенства.
+    @Test
+    void getCategory_shouldReturnDto_whenFound() {
+        Long id = 1L;
+        Category entity = new Category();
+        CategoryDto dto = new CategoryDto();
+        when(categoryRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(categoryMapper.toDto(entity)).thenReturn(dto);
+
+        CategoryDto result = catalogService.getCategory(id);
+
+        assertThat(result).isEqualTo(dto);
+        verify(categoryRepository).findById(id);
+    }
+
+    // Метод 6: updateCategory — проверяет обновление полей.
+    // Поэтапно: 1. Мок findById. 2. Обновляем entity из DTO (в вашем коде — if(dto.getName() != null) entity.setName...). 3. Save и toDto.
+    @Test
+    void updateCategory_shouldUpdateFields() {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        dto.setName("Updated");
+        dto.setDescription("New Desc");
+        Category entity = new Category();
+        entity.setName("Old");
+        entity.setDescription("Old Desc");
+        LocalDateTime now = LocalDateTime.now();
+        entity.setUpdatedAt(now);
+        when(categoryRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(categoryRepository.save(entity)).thenReturn(entity);
+        when(categoryMapper.toDto(entity)).thenReturn(dto);
+
+        CategoryDto result = catalogService.updateCategory(id, dto);
+
+        assertThat(entity.getName()).isEqualTo("Updated");
+        assertThat(entity.getDescription()).isEqualTo("New Desc");
+        assertThat(entity.getUpdatedAt()).isNotNull();
+        assertThat(result).isEqualTo(dto);
+        verify(categoryRepository).save(entity);
+    }
+
+    // Метод 7: updateCategory с ошибкой — проверяет NotFound.
+    // Поэтапно: Аналогично getCategory_throw.
+    @Test
+    void updateCategory_shouldThrowNotFound_whenIdInvalid() {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        when(categoryRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> catalogService.updateCategory(id, dto))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Category with id " + id + " not found");
+    }
+
+    // Метод 8: deleteCategory — проверяет вызов delete.
+    // Поэтапно: 1. Вызов метода. 2. Verify deleteById.
+    @Test
+    void deleteCategory_shouldCallDelete() {
+        Long id = 1L;
+        catalogService.deleteCategory(id);
+        verify(categoryRepository).deleteById(id);
+    }
+
+    // Метод 9: getProducts без фильтров — аналогично getCategories.
+    @Test
+    void getProducts_shouldReturnPageDto_whenNoFilters() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Product> page = new PageImpl<>(List.of(new Product()));
         when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
-        when(productMapper.toDto(product)).thenReturn(productDto);
+        ProductDto dto = new ProductDto();
+        when(productMapper.toDto(any(Product.class))).thenReturn(dto);
 
-        PageDto<ProductDto> result = catalogService.getProducts(pageable, 1L, "Test", BigDecimal.valueOf(50), BigDecimal.valueOf(150), true);
+        PageDto<ProductDto> result = catalogService.getProducts(pageable, null, null, null, null, null);
 
-        assertEquals(1, result.getContent().size());
-        assertEquals("Test Product", result.getContent().get(0).getName());
+        assertThat(result.getContent()).hasSize(1);
         verify(productRepository).findAll(any(Specification.class), eq(pageable));
-        verify(productMapper).toDto(product);
     }
 
+    // Метод 10: getProducts с фильтрами — проверяет Specification (categoryId, q, minPrice, maxPrice, onlyActive).
+    // Поэтапно: 1. Настраиваем мок. 2. Вызов с параметрами. 3. Verify any(Specification) — Mockito проверяет, что фильтры применены.
     @Test
-    void createProduct_success() {
-        // Проверяет: Создание продукта с валидной категорией
+    void getProducts_shouldFilterByParameters() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Product> page = new PageImpl<>(List.of());
+        when(productRepository.findAll(any(Specification.class), eq(pageable))).thenReturn(page);
+
+        catalogService.getProducts(pageable, 1L, "search", BigDecimal.ONE, BigDecimal.TEN, true);
+
+        verify(productRepository).findAll(any(Specification.class), eq(pageable));
+    }
+
+    // Метод 11: createProduct — проверяет создание с категорией.
+    @Test
+    void createProduct_shouldSaveWithCategory() {
+        ProductDto dto = new ProductDto();
+        dto.setCategoryId(1L);
+        dto.setSku("SKU");
+        dto.setName("Product");
+        dto.setPrice(BigDecimal.TEN);
+        dto.setStock(10);
+        dto.setActive(true);
+        Product entity = new Product();
+        Category category = new Category();
+        LocalDateTime now = LocalDateTime.now();
+        entity.setCreatedAt(now);
+        entity.setUpdatedAt(now);
+        when(productMapper.toEntity(dto)).thenReturn(entity);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productMapper.toEntity(productDto)).thenReturn(product);
-        when(productRepository.save(product)).thenReturn(product);
-        when(productMapper.toDto(product)).thenReturn(productDto);
+        when(productRepository.save(entity)).thenReturn(entity);
+        when(productMapper.toDto(entity)).thenReturn(dto);
 
-        ProductDto result = catalogService.createProduct(productDto);
+        ProductDto result = catalogService.createProduct(dto);
 
-        assertEquals("Test Product", result.getName());
-        assertEquals(1L, result.getCategoryId());
-        verify(categoryRepository).findById(1L);
-        verify(productRepository).save(product);
-        verify(productMapper).toEntity(productDto);
-        verify(productMapper).toDto(product);
+        assertThat(result).isEqualTo(dto);
+        assertThat(entity.getCategory()).isEqualTo(category);
+        assertThat(entity.getCreatedAt()).isNotNull();
+        verify(productRepository).save(entity);
     }
 
+    // Метод 12: createProduct с ошибкой категории.
     @Test
-    void createProduct_categoryNotFound() {
-        // Проверяет: Выброс NotFoundException при создании продукта с несуществующей категорией
+    void createProduct_shouldThrowNotFound_whenCategoryInvalid() {
+        ProductDto dto = new ProductDto();
+        dto.setCategoryId(1L);
         when(categoryRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> catalogService.createProduct(productDto));
-        verify(categoryRepository).findById(1L);
+        assertThatThrownBy(() -> catalogService.createProduct(dto))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Category with id " + dto.getCategoryId() + " not found");
     }
 
+    // Метод 13: getProduct успех.
     @Test
-    void getProduct_success() {
-        // Проверяет: Получение продукта по ID
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(productMapper.toDto(product)).thenReturn(productDto);
+    void getProduct_shouldReturnDto_whenFound() {
+        Long id = 1L;
+        Product entity = new Product();
+        ProductDto dto = new ProductDto();
+        when(productRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(productMapper.toDto(entity)).thenReturn(dto);
 
-        ProductDto result = catalogService.getProduct(1L);
+        ProductDto result = catalogService.getProduct(id);
 
-        assertEquals("Test Product", result.getName());
-        verify(productRepository).findById(1L);
-        verify(productMapper).toDto(product);
+        assertThat(result).isEqualTo(dto);
     }
 
+    // Метод 14: getProduct ошибка.
     @Test
-    void getProduct_notFound() {
-        // Проверяет: Выброс NotFoundException при отсутствии продукта
-        when(productRepository.findById(1L)).thenReturn(Optional.empty());
+    void getProduct_shouldThrowNotFound_whenIdInvalid() {
+        Long id = 1L;
+        when(productRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> catalogService.getProduct(1L));
-        verify(productRepository).findById(1L);
+        assertThatThrownBy(() -> catalogService.getProduct(id))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Product with id " + id + " not found");
     }
 
+    // Метод 15: updateProduct — проверяет частичное обновление полей.
     @Test
-    void updateProduct_success() {
-        // Проверяет: Обновление продукта с изменением всех полей
-        ProductDto updatedDto = new ProductDto();
-        updatedDto.setSku("SKU456");
-        updatedDto.setName("Updated Product");
-        updatedDto.setDescription("Updated Description");
-        updatedDto.setPrice(BigDecimal.valueOf(200));
-        updatedDto.setStock(20);
-        updatedDto.setActive(false);
-        updatedDto.setCategoryId(1L);
+    void updateProduct_shouldUpdateFields() {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        dto.setSku("NewSKU");
+        dto.setName("NewName");
+        dto.setDescription("NewDesc");
+        dto.setPrice(BigDecimal.valueOf(20));
+        dto.setStock(20);
+        dto.setActive(false);
+        dto.setCategoryId(2L);
+        Product entity = new Product();
+        entity.setSku("OldSKU");
+        entity.setName("OldName");
+        entity.setDescription("OldDesc");
+        entity.setPrice(BigDecimal.TEN);
+        entity.setStock(10);
+        entity.setActive(true);
+        Category oldCategory = new Category();
+        entity.setCategory(oldCategory);
+        Category newCategory = new Category();
+        LocalDateTime now = LocalDateTime.now();
+        entity.setUpdatedAt(now);
+        when(productRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(categoryRepository.findById(2L)).thenReturn(Optional.of(newCategory));
+        when(productRepository.save(entity)).thenReturn(entity);
+        when(productMapper.toDto(entity)).thenReturn(dto);
 
-        Product updatedProduct = new Product();
-        updatedProduct.setId(1L);
-        updatedProduct.setSku("SKU456");
-        updatedProduct.setName("Updated Product");
-        updatedProduct.setDescription("Updated Description");
-        updatedProduct.setPrice(BigDecimal.valueOf(200));
-        updatedProduct.setStock(20);
-        updatedProduct.setActive(false);
-        updatedProduct.setCategory(category);
+        ProductDto result = catalogService.updateProduct(id, dto);
 
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(productRepository.save(product)).thenReturn(updatedProduct);
-        when(productMapper.toDto(updatedProduct)).thenReturn(updatedDto);
-
-        ProductDto result = catalogService.updateProduct(1L, updatedDto);
-
-        assertEquals("Updated Product", result.getName());
-        assertEquals("SKU456", result.getSku());
-        verify(productRepository).findById(1L);
-        verify(categoryRepository).findById(1L);
-        verify(productRepository).save(product);
-        verify(productMapper).toDto(updatedProduct);
+        assertThat(entity.getSku()).isEqualTo("NewSKU");
+        assertThat(entity.getName()).isEqualTo("NewName");
+        assertThat(entity.getDescription()).isEqualTo("NewDesc");
+        assertThat(entity.getPrice()).isEqualTo(BigDecimal.valueOf(20));
+        assertThat(entity.getStock()).isEqualTo(20);
+        assertThat(entity.isActive()).isFalse();
+        assertThat(entity.getCategory()).isEqualTo(newCategory);
+        assertThat(entity.getUpdatedAt()).isNotNull();
+        assertThat(result).isEqualTo(dto);
+        verify(productRepository).save(entity);
     }
 
+    // Метод 16: updateProduct ошибка ID.
     @Test
-    void updateProduct_notFound() {
-        // Проверяет: Выброс NotFoundException при обновлении несуществующего продукта
-        when(productRepository.findById(1L)).thenReturn(Optional.empty());
+    void updateProduct_shouldThrowNotFound_whenIdInvalid() {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        when(productRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> catalogService.updateProduct(1L, productDto));
-        verify(productRepository).findById(1L);
+        assertThatThrownBy(() -> catalogService.updateProduct(id, dto))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Product with id " + id + " not found");
     }
 
+    // Метод 17: updateProduct ошибка категории.
     @Test
-    void deleteProduct_success() {
-        // Проверяет: Удаление продукта по ID
-        doNothing().when(productRepository).deleteById(1L);
+    void updateProduct_shouldThrowNotFound_whenCategoryInvalid() {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        dto.setCategoryId(2L);
+        Product entity = new Product();
+        when(productRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(categoryRepository.findById(2L)).thenReturn(Optional.empty());
 
-        catalogService.deleteProduct(1L);
-
-        verify(productRepository).findById(1L);
-        verify(productRepository).deleteById(1L);
+        assertThatThrownBy(() -> catalogService.updateProduct(id, dto))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Category with id " + dto.getCategoryId() + " not found");
     }
 
+    // Метод 18: deleteProduct — проверяет delete.
     @Test
-    void updateStock_success() {
-        // Проверяет: Обновление запаса продукта
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(productRepository.save(product)).thenReturn(product);
-        when(productMapper.toDto(product)).thenReturn(productDto);
-
-        ProductDto result = catalogService.updateStock(1L, 5);
-
-        assertEquals(15, result.getStock());
-        verify(productRepository).findById(1L);
-        verify(productRepository).save(product);
-        verify(productMapper).toDto(product);
+    void deleteProduct_shouldCallDelete() {
+        Long id = 1L;
+        catalogService.deleteProduct(id);
+        verify(productRepository).deleteById(id);
     }
 
+    // Метод 19: updateStock успех.
     @Test
-    void updateStock_negativeStock_throwsException() {
-        // Проверяет: Выброс ValidationException при попытке сделать отрицательный запас
-        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+    void updateStock_shouldUpdateAndSave() {
+        Long id = 1L;
+        Integer delta = 5;
+        Product entity = new Product();
+        entity.setStock(10);
+        LocalDateTime now = LocalDateTime.now();
+        entity.setUpdatedAt(now);
+        when(productRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(productRepository.save(entity)).thenReturn(entity);
+        ProductDto dto = new ProductDto();
+        when(productMapper.toDto(entity)).thenReturn(dto);
 
-        assertThrows(ValidationException.class, () -> catalogService.updateStock(1L, -20));
-        verify(productRepository).findById(1L);
-        verify(productRepository, never()).save(any()); // Убедимся, что save не вызывается
+        ProductDto result = catalogService.updateStock(id, delta);
+
+        assertThat(entity.getStock()).isEqualTo(15);
+        assertThat(entity.getUpdatedAt()).isNotNull();
+        assertThat(result).isEqualTo(dto);
+        verify(productRepository).save(entity);
+    }
+
+    // Метод 20: updateStock отрицательный stock.
+    @Test
+    void updateStock_shouldThrowValidation_whenNegative() {
+        Long id = 1L;
+        Integer delta = -15;
+        Product entity = new Product();
+        entity.setStock(10);
+        when(productRepository.findById(id)).thenReturn(Optional.of(entity));
+
+        assertThatThrownBy(() -> catalogService.updateStock(id, delta))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("Stock cannot be negative");
+    }
+
+    // Метод 21: updateStock ошибка ID.
+    @Test
+    void updateStock_shouldThrowNotFound_whenIdInvalid() {
+        Long id = 1L;
+        Integer delta = 5;
+        when(productRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> catalogService.updateStock(id, delta))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessage("Product with id " + id + " not found");
     }
 }

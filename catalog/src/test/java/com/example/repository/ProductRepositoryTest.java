@@ -4,19 +4,24 @@ import com.example.entity.Category;
 import com.example.entity.Product;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-public class ProductRepositoryTest {
+@DataJpaTest(excludeAutoConfiguration = LiquibaseAutoConfiguration.class)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
+@Import(com.example.ApplicationCatalog.class)
+class ProductRepositoryTest {
+
     @Autowired
     private ProductRepository productRepository;
 
@@ -24,18 +29,17 @@ public class ProductRepositoryTest {
     private CategoryRepository categoryRepository;
 
     @Test
-    void findBySku_success() {
-        // Проверяет: Поиск продукта по SKU
+    void findBySku_shouldReturnProduct() {
         Category category = new Category();
-        category.setName("Test Category");
+        category.setName("TestCategory");
         category.setCreatedAt(LocalDateTime.now());
         category.setUpdatedAt(LocalDateTime.now());
-        category = categoryRepository.save(category);
+        categoryRepository.save(category);
 
         Product product = new Product();
         product.setSku("SKU123");
-        product.setName("Test Product");
-        product.setPrice(BigDecimal.valueOf(100));
+        product.setName("Test");
+        product.setPrice(BigDecimal.TEN);
         product.setStock(10);
         product.setActive(true);
         product.setCategory(category);
@@ -45,23 +49,48 @@ public class ProductRepositoryTest {
 
         Product found = productRepository.findBySku("SKU123");
 
-        assertNotNull(found);
-        assertEquals("SKU123", found.getSku());
+        assertThat(found).isNotNull();
+        assertThat(found.getSku()).isEqualTo("SKU123");
+        assertThat(found.getName()).isEqualTo("Test");
     }
 
     @Test
-    void findByCategoryId_success() {
-        // Проверяет: Поиск продуктов по ID категории
+    void findByCategoryId_shouldReturnList() {
         Category category = new Category();
-        category.setName("Test Category");
+        category.setName("TestCategory");
         category.setCreatedAt(LocalDateTime.now());
         category.setUpdatedAt(LocalDateTime.now());
         category = categoryRepository.save(category);
 
         Product product = new Product();
         product.setSku("SKU123");
-        product.setName("Test Product");
-        product.setPrice(BigDecimal.valueOf(100));
+        product.setName("book");
+        product.setCategory(category);
+        product.setPrice(BigDecimal.TEN);
+        product.setStock(1);
+        product.setActive(true);
+        product.setCreatedAt(LocalDateTime.now());
+        product.setUpdatedAt(LocalDateTime.now());
+        productRepository.save(product);
+
+        var found = productRepository.findByCategoryId(category.getId());
+
+        assertThat(found).hasSize(1);
+        assertThat(found.get(0).getSku()).isEqualTo("SKU123");
+    }
+
+    @Test
+    void findAll_withSpecification_shouldReturnPage() {
+        Category category = new Category();
+        category.setName("TestCategory");
+        category.setCreatedAt(LocalDateTime.now());
+        category.setUpdatedAt(LocalDateTime.now());
+        categoryRepository.save(category);
+
+        Product product = new Product();
+        product.setSku("SKU123");
+        product.setName("Test");
+        product.setPrice(BigDecimal.TEN);
         product.setStock(10);
         product.setActive(true);
         product.setCategory(category);
@@ -69,35 +98,11 @@ public class ProductRepositoryTest {
         product.setUpdatedAt(LocalDateTime.now());
         productRepository.save(product);
 
-        List<Product> found = productRepository.findByCategoryId(category.getId());
+        var spec = (Specification<Product>) (root, query, cb) -> cb.equal(root.get("sku"), "SKU123");
+        var pageable = PageRequest.of(0, 10);
+        Page<Product> page = productRepository.findAll(spec, pageable);
 
-        assertEquals(1, found.size());
-        assertEquals("Test Product", found.get(0).getName());
-    }
-
-    @Test
-    void findAll_withPagination() {
-        // Проверяет: Получение списка продуктов с пагинацией
-        Category category = new Category();
-        category.setName("Test Category");
-        category.setCreatedAt(LocalDateTime.now());
-        category.setUpdatedAt(LocalDateTime.now());
-        category = categoryRepository.save(category);
-
-        Product product = new Product();
-        product.setSku("SKU123");
-        product.setName("Test Product");
-        product.setPrice(BigDecimal.valueOf(100));
-        product.setStock(10);
-        product.setActive(true);
-        product.setCategory(category);
-        product.setCreatedAt(LocalDateTime.now());
-        product.setUpdatedAt(LocalDateTime.now());
-        productRepository.save(product);
-
-        Page<Product> page = productRepository.findAll(PageRequest.of(0, 10));
-
-        assertEquals(1, page.getContent().size());
-        assertEquals("Test Product", page.getContent().get(0).getName());
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getContent().get(0).getSku()).isEqualTo("SKU123");
     }
 }

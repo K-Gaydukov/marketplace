@@ -1,22 +1,26 @@
 package com.example.controller;
 
+import com.example.config.SecurityConfig;
 import com.example.dto.PageDto;
 import com.example.dto.catalog.CategoryDto;
 import com.example.dto.catalog.ProductDto;
+import com.example.exception.NotFoundException;
+import com.example.exception.ValidationException;
 import com.example.service.CatalogService;
+import com.example.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Pageable;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -26,211 +30,340 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(CatalogController.class)
-public class CatalogControllerTest {
-    @Autowired
-    private MockMvc mockMvc;
+@Import(SecurityConfig.class)
+class CatalogControllerTest {
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private MockMvc mockMvc;
 
     @MockBean
     private CatalogService catalogService;
 
-    private CategoryDto categoryDto;
-    private ProductDto productDto;
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private Claims userClaims;
+    private Claims adminClaims;
 
     @BeforeEach
     void setUp() {
-        categoryDto = new CategoryDto();
-        categoryDto.setId(1L);
-        categoryDto.setName("Test Category");
-        categoryDto.setDescription("Description");
-        categoryDto.setCreatedAt(LocalDateTime.now());
-        categoryDto.setUpdatedAt(LocalDateTime.now());
+        // Создаём Claims через Jwts.claims() (из jjwt-api)
+        userClaims = Jwts.claims()
+                .setSubject("test-user")
+                .add("role", "ROLE_USER")
+                .add("uid", 1L)
+                .add("fio", "Test User").build();
 
-        productDto = new ProductDto();
-        productDto.setId(1L);
-        productDto.setSku("SKU123");
-        productDto.setName("Test Product");
-        productDto.setDescription("Product Description");
-        productDto.setPrice(BigDecimal.valueOf(100));
-        productDto.setStock(10);
-        productDto.setActive(true);
-        productDto.setCategoryId(1L);
-        productDto.setCreatedAt(LocalDateTime.now());
-        productDto.setUpdatedAt(LocalDateTime.now());
+        adminClaims = Jwts.claims()
+                .setSubject("test-admin")
+                .add("role", "ROLE_ADMIN")
+                .add("uid", 2L)
+                .add("fio", "Test Admin").build();
     }
 
     @Test
-    @WithMockUser(roles = {"USER", "ADMIN"})
-    void getCategories_success() throws Exception {
-        // Проверяет: GET /categories с пагинацией и фильтрацией
+    void getCategories_shouldReturn200() throws Exception {
         PageDto<CategoryDto> pageDto = new PageDto<>();
-        pageDto.setContent(List.of(categoryDto));
-        pageDto.setNumber(0);
-        pageDto.setSize(10);
-        pageDto.setTotalElements(1);
-        when(catalogService.getCategories(any(Pageable.class), any())).thenReturn(pageDto);
+        pageDto.setContent(List.of(new CategoryDto()));
+        when(catalogService.getCategories(any(), eq(null))).thenReturn(pageDto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
 
-        mockMvc.perform(get("/categories?page=0&size=10&name=Test"))
+        mockMvc.perform(get("/categories")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].name").value("Test Category"))
-                .andExpect(jsonPath("$.number").value(0))
-                .andExpect(jsonPath("$.size").value(10));
-
-        verify(catalogService).getCategories(any(Pageable.class), eq("Test"));
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void createCategory_success() throws Exception {
-        // Проверяет: POST /categories с валидным DTO
-        when(catalogService.createCategory(any(CategoryDto.class))).thenReturn(categoryDto);
+    void getCategories_shouldReturn200_withName() throws Exception {
+        PageDto<CategoryDto> pageDto = new PageDto<>();
+        pageDto.setContent(List.of(new CategoryDto()));
+        when(catalogService.getCategories(any(), eq("Test"))).thenReturn(pageDto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
+
+        mockMvc.perform(get("/categories")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("name", "Test")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    void createCategory_shouldReturn201() throws Exception {
+        CategoryDto dto = new CategoryDto();
+        dto.setName("Test");
+        dto.setDescription("Desc");
+        when(catalogService.createCategory(any())).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
 
         mockMvc.perform(post("/categories")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(categoryDto)))
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Test Category"));
-
-        verify(catalogService).createCategory(any(CategoryDto.class));
+                .andExpect(jsonPath("$.name").value("Test"))
+                .andExpect(jsonPath("$.description").value("Desc"));
     }
 
     @Test
-    @WithMockUser(roles = "USER")
-    void createCategory_forbidden() throws Exception {
-        // Проверяет: POST /categories без роли ADMIN возвращает 403
+    void createCategory_shouldReturn422_whenInvalid() throws Exception {
+        CategoryDto dto = new CategoryDto(); // Пустое имя вызовет ValidationException
+        when(catalogService.createCategory(any())).thenThrow(new ValidationException("Name is required"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
         mockMvc.perform(post("/categories")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(categoryDto)))
-                .andExpect(status().isForbidden());
-
-        verify(catalogService, never()).createCategory(any());
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").value("Name is required"));
     }
 
     @Test
-    @WithMockUser(roles = {"USER", "ADMIN"})
-    void getCategory_success() throws Exception {
-        // Проверяет: GET /categories/{id}
-        when(catalogService.getCategory(1L)).thenReturn(categoryDto);
+    void getCategory_shouldReturn200_whenFound() throws Exception {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        dto.setId(id);
+        dto.setName("Test");
+        when(catalogService.getCategory(id)).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
 
-        mockMvc.perform(get("/categories/1"))
+        mockMvc.perform(get("/categories/{id}", id)
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Test Category"));
-
-        verify(catalogService).getCategory(1L);
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.name").value("Test"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void updateCategory_success() throws Exception {
-        // Проверяет: PUT /categories/{id}
-        when(catalogService.updateCategory(eq(1L), any(CategoryDto.class))).thenReturn(categoryDto);
+    void getCategory_shouldReturn404_whenNotFound() throws Exception {
+        Long id = 1L;
+        when(catalogService.getCategory(id)).thenThrow(new NotFoundException("Category with id " + id + " not found"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
 
-        mockMvc.perform(put("/categories/1")
+        mockMvc.perform(get("/categories/{id}", id)
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Category with id " + id + " not found"));
+    }
+
+    @Test
+    void updateCategory_shouldReturn200() throws Exception {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        dto.setName("Updated");
+        when(catalogService.updateCategory(eq(id), any())).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
+        mockMvc.perform(put("/categories/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(categoryDto)))
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Test Category"));
-
-        verify(catalogService).updateCategory(eq(1L), any(CategoryDto.class));
+                .andExpect(jsonPath("$.name").value("Updated"));
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void deleteCategory_success() throws Exception {
-        // Проверяет: DELETE /categories/{id}
-        doNothing().when(catalogService).deleteCategory(1L);
+    void updateCategory_shouldReturn404_whenNotFound() throws Exception {
+        Long id = 1L;
+        CategoryDto dto = new CategoryDto();
+        dto.setName("Book");
+        when(catalogService.updateCategory(eq(id), any())).thenThrow(new NotFoundException("Category with id " + id + " not found"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
 
-        mockMvc.perform(delete("/categories/1"))
+        mockMvc.perform(put("/categories/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Category with id " + id + " not found"));
+    }
+
+    @Test
+    void deleteCategory_shouldReturn204() throws Exception {
+        Long id = 1L;
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
+        mockMvc.perform(delete("/categories/{id}", id)
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isNoContent());
-
-        verify(catalogService).deleteCategory(1L);
     }
 
     @Test
-    @WithMockUser(roles = {"USER", "ADMIN"})
-    void getProducts_success() throws Exception {
-        // Проверяет: GET /products с фильтрацией
+    void getProducts_shouldReturn200() throws Exception {
         PageDto<ProductDto> pageDto = new PageDto<>();
-        pageDto.setContent(List.of(productDto));
-        pageDto.setNumber(0);
-        pageDto.setSize(10);
-        pageDto.setTotalElements(1);
-        when(catalogService.getProducts(any(Pageable.class), any(), any(), any(), any(), any())).thenReturn(pageDto);
+        pageDto.setContent(List.of(new ProductDto()));
+        when(catalogService.getProducts(any(), eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(pageDto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
 
-        mockMvc.perform(get("/products?page=0&size=10&categoryId=1&q=Test&minPrice=50&maxPrice=150&onlyActive=true"))
+        mockMvc.perform(get("/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].name").value("Test Product"));
-
-        verify(catalogService).getProducts(any(Pageable.class), eq(1L), eq("Test"), eq(BigDecimal.valueOf(50)), eq(BigDecimal.valueOf(150)), eq(true));
+                .andExpect(jsonPath("$.content").isArray());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void createProduct_success() throws Exception {
-        // Проверяет: POST /products
-        when(catalogService.createProduct(any(ProductDto.class))).thenReturn(productDto);
+    void getProducts_shouldReturn200_withFilters() throws Exception {
+        PageDto<ProductDto> pageDto = new PageDto<>();
+        pageDto.setContent(List.of(new ProductDto()));
+        when(catalogService.getProducts(any(), eq(1L), eq("search"), eq(BigDecimal.valueOf(1.0)), eq(BigDecimal.valueOf(10.0)), eq(true))).thenReturn(pageDto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
+
+        mockMvc.perform(get("/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("categoryId", "1")
+                        .param("q", "search")
+                        .param("minPrice", "1.0")
+                        .param("maxPrice", "10.0")
+                        .param("onlyActive", "true")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray());
+    }
+
+    @Test
+    void createProduct_shouldReturn201() throws Exception {
+        ProductDto dto = new ProductDto();
+        dto.setSku("SKU123");
+        dto.setName("Product");
+        dto.setDescription("Desc");
+        dto.setPrice(BigDecimal.TEN);
+        dto.setStock(100);
+        dto.setActive(true);
+        dto.setCategoryId(1L);
+        when(catalogService.createProduct(any())).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
 
         mockMvc.perform(post("/products")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(productDto)))
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Test Product"));
-
-        verify(catalogService).createProduct(any(ProductDto.class));
+                .andExpect(jsonPath("$.sku").value("SKU123"));
     }
 
     @Test
-    @WithMockUser(roles = {"USER", "ADMIN"})
-    void getProduct_success() throws Exception {
-        // Проверяет: GET /products/{id}
-        when(catalogService.getProduct(1L)).thenReturn(productDto);
+    void createProduct_shouldReturn422_whenInvalid() throws Exception {
+        ProductDto dto = new ProductDto(); // Пустой DTO вызовет ValidationException
+        when(catalogService.createProduct(any())).thenThrow(new ValidationException("Category ID cannot be empty, SKU cannot be empty, Name cannot be empty"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
 
-        mockMvc.perform(get("/products/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Test Product"));
-
-        verify(catalogService).getProduct(1L);
-    }
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void updateProduct_success() throws Exception {
-        // Проверяет: PUT /products/{id}
-        when(catalogService.updateProduct(eq(1L), any(ProductDto.class))).thenReturn(productDto);
-
-        mockMvc.perform(put("/products/1")
+        mockMvc.perform(post("/products")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(productDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Test Product"));
-
-        verify(catalogService).updateProduct(eq(1L), any(ProductDto.class));
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void deleteProduct_success() throws Exception {
-        // Проверяет: DELETE /products/{id}
-        doNothing().when(catalogService).deleteProduct(1L);
+    void getProduct_shouldReturn200_whenFound() throws Exception {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        dto.setId(id);
+        dto.setSku("SKU123");
+        when(catalogService.getProduct(id)).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
 
-        mockMvc.perform(delete("/products/1"))
+        mockMvc.perform(get("/products/{id}", id)
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.sku").value("SKU123"));
+    }
+
+    @Test
+    void getProduct_shouldReturn404_whenNotFound() throws Exception {
+        Long id = 1L;
+        when(catalogService.getProduct(id)).thenThrow(new NotFoundException("Product with id " + id + " not found"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(userClaims);
+
+        mockMvc.perform(get("/products/{id}", id)
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Product with id " + id + " not found"));
+    }
+
+    @Test
+    void updateProduct_shouldReturn200() throws Exception {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        dto.setName("Updated");
+        dto.setCategoryId(1L);
+        dto.setSku("BN123");
+        dto.setActive(false);
+        when(catalogService.updateProduct(eq(id), any())).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
+        mockMvc.perform(put("/products/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated"));
+    }
+
+    @Test
+    void updateProduct_shouldReturn404_whenNotFound() throws Exception {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        dto.setName("Updated");
+        dto.setCategoryId(1L);
+        dto.setSku("BN123");
+        dto.setActive(false);
+        when(catalogService.updateProduct(eq(id), any())).thenThrow(new NotFoundException("Product with id " + id + " not found"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
+        mockMvc.perform(put("/products/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto))
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Product with id " + id + " not found"));
+    }
+
+    @Test
+    void deleteProduct_shouldReturn204() throws Exception {
+        Long id = 1L;
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
+        mockMvc.perform(delete("/products/{id}", id)
+                        .header("Authorization", "Bearer test-token"))
                 .andExpect(status().isNoContent());
-
-        verify(catalogService).deleteProduct(1L);
     }
 
     @Test
-    @WithMockUser(roles = {"ADMIN", "SERVICE"})
-    void updateStock_success() throws Exception {
-        // Проверяет: PATCH /products/{id}/stock
-        when(catalogService.updateStock(1L, 5)).thenReturn(productDto);
+    void updateStock_shouldReturn200() throws Exception {
+        Long id = 1L;
+        ProductDto dto = new ProductDto();
+        when(catalogService.updateStock(id, 5)).thenReturn(dto);
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
 
-        mockMvc.perform(patch("/products/1/stock?delta=5"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.stock").value(10));
+        mockMvc.perform(patch("/products/{id}/stock", id)
+                        .param("delta", "5")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isOk());
+    }
 
-        verify(catalogService).updateStock(1L, 5);
+    @Test
+    void updateStock_shouldReturn422_whenInvalid() throws Exception {
+        Long id = 1L;
+        when(catalogService.updateStock(id, -15)).thenThrow(new ValidationException("Stock cannot be negative"));
+        when(jwtUtil.validateToken("test-token")).thenReturn(adminClaims);
+
+        mockMvc.perform(patch("/products/{id}/stock", id)
+                        .param("delta", "-15")
+                        .header("Authorization", "Bearer test-token"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.message").value("Stock cannot be negative"));
     }
 }

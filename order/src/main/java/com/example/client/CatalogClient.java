@@ -65,4 +65,9 @@ public class CatalogClient {
             }
         }
     }
+
+    // for tests order
+    public RestTemplate getRestTemplate() {
+        return restTemplate;
+    }
 }

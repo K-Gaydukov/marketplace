@@ -200,9 +200,6 @@ public class OrderService {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Order with id: " + id + " not found"));
-        if (!isAdmin && !order.getUserId().equals(principalId)) {
-            throw new ValidationException("Access denied: not your order");
-        }
         if (!isAdmin) {
             throw new AccessDeniedException("Only admins can update order status");
         }

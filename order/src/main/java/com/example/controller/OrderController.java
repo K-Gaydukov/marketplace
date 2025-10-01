@@ -29,9 +29,9 @@ public class OrderController {
     }
 
     @PostMapping
-    public OrderDto createOrder(@Valid @RequestBody OrderRequestDto dto,
+    public ResponseEntity<OrderDto> createOrder(@Valid @RequestBody OrderRequestDto dto,
                                 Authentication authentication) {
-        return orderService.createOrder(dto, authentication);
+        return ResponseEntity.status(201).body(orderService.createOrder(dto, authentication));
     }
 
     @GetMapping("/{id}")

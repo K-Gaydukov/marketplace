@@ -4,6 +4,8 @@ import com.example.dto.TokenResponse;
 import com.example.dto.UserDto;
 import com.example.dto.UserUpdateDto;
 import com.example.entity.User;
+import com.example.exception.NotFoundException;
+import com.example.exception.ValidationException;
 import com.example.mapper.UserMapper;
 import com.example.repository.UserRepository;
 import com.example.service.AuthService;
@@ -36,6 +38,9 @@ public class AuthController {
     public ResponseEntity<UserDto> updateMe(@Valid @RequestBody UserUpdateDto dto,
                                             Principal principal) {
         User user = userRepository.findByUsername(principal.getName());
+        if (user == null) {
+            throw new NotFoundException("User not found");
+        }
         userMapper.updateFromDto(dto, user);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -48,13 +53,16 @@ public class AuthController {
             throw new RuntimeException("User not authenticated");
         }
         User user = userRepository.findByUsername(principal.getName());
+        if (user == null) {
+            throw new NotFoundException("User not found");
+        }
         return ResponseEntity.ok(userMapper.toDto(user));
     }
 
-    @GetMapping("/test")
-    public String test() {
-        return "Auth-Gateway is working!";
-    }
+//    @GetMapping("/test")
+//    public String test() {
+//        return "Auth-Gateway is working!";
+//    }
 
     @PostMapping("/auth/register")
     public ResponseEntity<Map<String, String>> register(@RequestBody User user) {

@@ -20,6 +20,5 @@ public class UserUpdateDto {
     private String middleName;
     @NotBlank(message = "Role cannot be empty")
     private String role;
-    @NotBlank(message = "Active cannot be empty")
     private boolean active;
 }

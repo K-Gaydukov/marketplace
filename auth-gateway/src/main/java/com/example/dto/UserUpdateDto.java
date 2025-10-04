@@ -2,23 +2,29 @@ package com.example.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
 public class UserUpdateDto {
 
-    @NotBlank(message = "Username cannot be empty")
+    @Pattern(regexp = "^\\S+$", message = "Username cannot contain only whitespace")
     private String username;
-    @NotBlank(message = "Email cannot be empty")
+
     @Email(message = "Invalid email")
     private String email;
-    @NotBlank(message = "First name cannot be empty")
+
+    @Pattern(regexp = "^\\S+$", message = "First name cannot contain only whitespace")
     private String firstName;
-    @NotBlank(message = "Last name cannot be empty")
+
+    @Pattern(regexp = "^\\S+$", message = "Last name cannot contain only whitespace")
     private String lastName;
-    @NotBlank(message = "Middle name cannot be empty")
+
+    @Pattern(regexp = "^$|^\\S+$", message = "Middle name cannot contain only whitespace")
     private String middleName;
-    @NotBlank(message = "Role cannot be empty")
+
+    @Pattern(regexp = "^\\S+$", message = "Role cannot contain only whitespace")
     private String role;
+
     private boolean active;
 }
